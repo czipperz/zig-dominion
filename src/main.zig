@@ -10,7 +10,7 @@ pub fn main() anyerror!void {
                                          .{ .shown = true, .resizable = true });
     defer sdl2.destroyWindow(window);
 
-    const state = State{};
+    var state = try State.setup(2);
     defer state.deinit();
 
     while (true) {
