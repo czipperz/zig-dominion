@@ -6,6 +6,7 @@ usingnamespace @import("cards/estate.zig");
 pub const State = struct {
     players: []Player,
     active_player: usize,
+    trash: std.ArrayList(Card),
 
     /// Input stack is only used for testing.
     input_stack: std.ArrayList(MockInput),
@@ -44,6 +45,7 @@ pub const State = struct {
         return State {
             .players = players,
             .active_player = 0,
+            .trash = std.ArrayList(Card).init(allocator),
 
             .input_stack = std.ArrayList(MockInput).init(allocator),
 
@@ -62,6 +64,8 @@ pub const State = struct {
 
         for (state.input_stack.items) |*mock_input| mock_input.deinit();
         state.input_stack.deinit();
+
+        state.trash.deinit();
     }
 
     pub fn selectCards(state: *State, prompt: []const u8, min: usize, max: usize) !std.DynamicBitSet {

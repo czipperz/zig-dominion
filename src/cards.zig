@@ -13,3 +13,4 @@ usingnamespace @import("cards/province.zig");
 
 // Action cards
 usingnamespace @import("cards/cellar.zig");
+usingnamespace @import("cards/chapel.zig");
