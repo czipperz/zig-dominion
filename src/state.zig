@@ -7,8 +7,16 @@ pub const State = struct {
     players: []Player,
     active_player: usize,
 
-    pub fn setup(random: *std.rand.Random, num_players: usize) !State {
+    /// Input stack is only used for testing.
+    input_stack: std.ArrayList(MockInput),
+
+    prng: std.rand.DefaultPrng,
+
+    pub fn setup(num_players: usize) !State {
         const allocator = std.heap.c_allocator;
+
+        const seed = std.crypto.random.int(u64);
+        var prng = std.rand.DefaultPrng.init(seed);
 
         std.debug.assert(num_players > 0);
         const players = try allocator.alloc(Player, num_players);
@@ -21,20 +29,25 @@ pub const State = struct {
             i = 0; while (i < 3) : (i += 1) {
                 deck.appendAssumeCapacity(&estate);
             }
-            random.shuffle(Card, deck.items);
+            prng.random.shuffle(Card, deck.items);
 
             player.* = .{
                 .coins = 0,
+                .actions = 1,
                 .hand = std.ArrayList(Card).init(allocator),
                 .deck = deck,
                 .discard = std.ArrayList(Card).init(allocator),
             };
-            try player.draw(random, 5);
+            try player.draw(&prng.random, 5);
         }
 
         return State {
             .players = players,
             .active_player = 0,
+
+            .input_stack = std.ArrayList(MockInput).init(allocator),
+
+            .prng = prng,
         };
     }
 
@@ -46,11 +59,35 @@ pub const State = struct {
         const allocator = std.heap.c_allocator;
         for (state.players) |*player| player.deinit();
         allocator.free(state.players);
+
+        for (state.input_stack.items) |*mock_input| mock_input.deinit();
+        state.input_stack.deinit();
     }
+
+    pub fn selectCards(state: *State, prompt: []const u8, min: usize, max: usize) !std.DynamicBitSet {
+        if (state.input_stack.popOrNull()) |mock_input| {
+            switch (mock_input) {
+                .selected_cards => |bit_set| {
+                    const count = bit_set.count();
+                    std.debug.assert(count >= min);
+                    std.debug.assert(count < max);
+                    return bit_set;
+                },
+                // else => std.debug.panic("Expected MockInput.select_cards, found {}", .{mock_input}),
+            }
+        }
+
+        _ = prompt;
+        std.debug.panic("unimplemented", .{});
+    }
+
+    pub fn random(state: *State) *std.rand.Random { return &state.prng.random; }
 };
 
 pub const Player = struct {
     coins: u32,
+    actions: u32,
+
     hand: std.ArrayList(Card),
     deck: std.ArrayList(Card),
     discard: std.ArrayList(Card),
@@ -97,5 +134,15 @@ pub const Player = struct {
         for (player.deck.items) |card| num += card.victory_points(state);
         for (player.discard.items) |card| num += card.victory_points(state);
         return num;
+    }
+};
+
+pub const MockInput = union(enum) {
+    selected_cards: std.DynamicBitSet,
+
+    pub fn deinit(mock_input: *MockInput) void {
+        switch (mock_input.*) {
+            .selected_cards => |*bit_set| bit_set.deinit(),
+        }
     }
 };

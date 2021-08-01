@@ -4,16 +4,11 @@ usingnamespace @import("state.zig");
 usingnamespace @import("card.zig");
 
 pub const Scenario = struct {
-    prng: std.rand.DefaultPrng,
     state: State,
 
     pub fn simple(players: usize) !Scenario {
-        const seed = std.crypto.random.int(u64);
-        var prng = std.rand.DefaultPrng.init(seed);
-
         return Scenario{
-            .prng = prng,
-            .state = try State.setup(&prng.random, players),
+            .state = try State.setup(players),
         };
     }
 
@@ -23,6 +18,20 @@ pub const Scenario = struct {
 
     pub fn play(scenario: *Scenario, card: *const CardClass) !void {
         return card.action(&scenario.state);
+    }
+
+    pub fn pushSelectCards(scenario: *Scenario, cards: []const usize) !void {
+        try scenario.state.input_stack.ensureUnusedCapacity(1);
+
+        const hand_size = scenario.state.activePlayer().hand.items.len;
+        var bit_set = try std.DynamicBitSet.initEmpty(hand_size, std.heap.c_allocator);
+        for (cards) |card| bit_set.set(card);
+
+        scenario.state.input_stack.appendAssumeCapacity(.{ .selected_cards = bit_set });
+    }
+
+    pub fn inputStackIsEmpty(scenario: *Scenario) bool {
+        return scenario.state.input_stack.items.len == 0;
     }
 };
 

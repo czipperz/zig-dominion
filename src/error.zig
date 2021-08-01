@@ -1,3 +1,3 @@
 pub const Error = error {
-    // OutOfMemory,
+    OutOfMemory,
 };
