@@ -7,7 +7,7 @@ fn action(state: *State) !void {
 
     player.actions += 1;
 
-    var cards = try state.selectCards("Trash up to 4 cards from your hand.", 0, 4);
+    var cards = try state.selectCards("Trash up to 4 cards from your hand.", .hand, 0, 4);
     defer cards.deinit();
 
     const count = cards.count();
@@ -29,14 +29,6 @@ pub const chapel = CardClass {
 };
 
 usingnamespace @import("../scenario.zig");
-
-fn selectCards(comptime max: usize, indices: []const usize) std.StaticBitSet {
-    var bit_set = std.StaticBitSet(max);
-    for (indices) |index| {
-        bit_set.setValue(index, true);
-    }
-    return bit_set;
-}
 
 test {
     var scenario = try Scenario.simple(2);

@@ -68,13 +68,14 @@ pub const State = struct {
         state.trash.deinit();
     }
 
-    pub fn selectCards(state: *State, prompt: []const u8, min: usize, max: usize) !std.DynamicBitSet {
+    pub fn selectCards(state: *State, prompt: []const u8, comptime cardLocation: CardLocation,
+                       min: usize, max: usize) !std.DynamicBitSet {
         if (state.input_stack.popOrNull()) |mock_input| {
             switch (mock_input) {
                 .selected_cards => |bit_set| {
                     const count = bit_set.count();
                     std.debug.assert(count >= min);
-                    std.debug.assert(count < max);
+                    std.debug.assert(count <= max);
                     return bit_set;
                 },
                 // else => std.debug.panic("Expected MockInput.select_cards, found {}", .{mock_input}),
@@ -82,6 +83,7 @@ pub const State = struct {
         }
 
         _ = prompt;
+        _ = cardLocation;
         std.debug.panic("unimplemented", .{});
     }
 
@@ -149,4 +151,9 @@ pub const MockInput = union(enum) {
             .selected_cards => |*bit_set| bit_set.deinit(),
         }
     }
+};
+
+pub const CardLocation = enum {
+    hand,
+    discard,
 };
