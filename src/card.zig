@@ -9,10 +9,10 @@ pub const CardClass = struct {
     description: []const u8,
     type: CardType,
     action: fn(state: *State) Error!void,
-    victory_points: fn(state: *const State) u32 = noVictoryPoints,
+    victory_points: fn(state: *const State) i32 = noVictoryPoints,
 };
 
-fn noVictoryPoints(state: *const State) u32 {
+fn noVictoryPoints(state: *const State) i32 {
     _ = state;
     return 0;
 }

@@ -91,8 +91,8 @@ pub const Player = struct {
     }
 
     /// Get the total number of victory points for the player.
-    pub fn victoryPoints(player: *const Player, state: *const State) u32 {
-        var num: u32 = 0;
+    pub fn victoryPoints(player: *const Player, state: *const State) i32 {
+        var num: i32 = 0;
         for (player.hand.items) |card| num += card.victory_points(state);
         for (player.deck.items) |card| num += card.victory_points(state);
         for (player.discard.items) |card| num += card.victory_points(state);
