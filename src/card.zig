@@ -4,9 +4,9 @@ usingnamespace @import("error.zig");
 pub const Card = *const CardClass;
 
 pub const CardClass = struct {
-    name: []const u8,
+    name: [:0]const u8,
     cost: u8,
-    description: []const u8,
+    description: [:0]const u8,
     type: CardType,
     action: fn(state: *State) Error!void,
     victory_points: fn(state: *const State) i32 = noVictoryPoints,

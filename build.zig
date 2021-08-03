@@ -1,10 +1,25 @@
 const std = @import("std");
 
 fn useSdl(step: *std.build.LibExeObjStep) void {
-    step.addPackagePath("sdl2", "../sdl2/src/main.zig");
+    const sdl2 = .{
+        .name = "sdl2",
+        .path = .{ .path = "../sdl2/src/main.zig" }
+    };
+    step.addPackage(sdl2);
     step.addIncludeDir("../sdl2/SDL/include");
     step.addLibPath("../sdl2/SDL/lib/x64");
     step.linkSystemLibrary("SDL2");
+
+    const sdl2_ttf = .{
+        .name = "sdl2_ttf",
+        .path = .{ .path = "../sdl2_ttf/src/main.zig" },
+        .dependencies = &.{sdl2},
+    };
+    step.addPackage(sdl2_ttf);
+    step.addIncludeDir("../sdl2_ttf/SDL_ttf/include");
+    step.addLibPath("../sdl2_ttf/SDL_ttf/lib/x64");
+    step.linkSystemLibrary("SDL2_ttf");
+
     step.linkSystemLibrary("c");
 }
 
