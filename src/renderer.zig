@@ -8,7 +8,7 @@ pub const RenderError = error {
     RenderText,
 };
 
-const card_width = 100;
+const card_width = 150;
 const card_height = 200;
 const card_padding = 5;
 const card_margin = 10;
@@ -42,7 +42,7 @@ pub const Renderer = struct {
 
         const player = state.activePlayer();
         for (player.hand.items) |*card, i| {
-            const card_rect = .{ .x = (surface.w + card_margin) * @intCast(c_int, i) + card_margin,
+            const card_rect = .{ .x = (card_width + card_margin) * @intCast(c_int, i) + card_margin,
                                  .y = surface.h - card_height,
                                  .w = card_width,
                                  .h = card_height, };
