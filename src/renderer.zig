@@ -235,10 +235,22 @@ pub const Renderer = struct {
     pub fn renderPlay(renderer: *Renderer, state: *State, surface: *sdl2.Surface) !void {
         const player = state.activePlayer();
 
+        var previous_card: ?Card = null;
+        var xoffset: usize = 0;
+        var yoffset: c_int = 0;
+
         for (player.play.items) |card, i| {
+            if (card == previous_card) {
+                xoffset += 1;
+                yoffset += 1;
+            } else {
+                yoffset = 0;
+            }
+            previous_card = card;
+
             const card_rect = .{
-                .x = (card_width + card_margin) * @intCast(c_int, i) + card_margin,
-                .y = 100,
+                .x = (card_width + card_margin) * @intCast(c_int, i - xoffset) + card_margin,
+                .y = 100 + 30 * yoffset,
                 .w = card_width,
                 .h = card_height,
             };
