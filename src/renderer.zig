@@ -79,6 +79,10 @@ pub const Renderer = struct {
         const white = sdl2.mapRGB(surface.format, 0xff, 0xff, 0xff);
         try surface.fillRect(null, white);
 
+        try surface.fillRect(sdl2.Rect{ .x = 0, .y = surface.h - (card_height + card_margin),
+                                        .w = surface.w, .h = (card_height + card_margin) },
+                             sdl2.mapRGB(surface.format, 0xcc, 0xcc, 0xcc));
+
         const yanimtime = 100;
         const xanimtime = 100;
 
