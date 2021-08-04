@@ -10,11 +10,14 @@ pub const RenderError = error {
     RenderText,
 };
 
+const hand_height = card_height + card_margin;
 const card_width = 150;
 const card_height = 200;
 const card_padding = 5;
 const card_margin = 10;
 const name_bottom_margin = 10;
+const prompt_margin = 10;
+const submit_padding = 4;
 
 fn lerp(ticks_now: u32, ticks_end: u32, fstart: f32, fend: f32) f32 {
     var result = fend;
@@ -26,8 +29,10 @@ fn lerp(ticks_now: u32, ticks_end: u32, fstart: f32, fend: f32) f32 {
 pub const Renderer = struct {
     name_font: *sdl2_ttf.Font,
     description_font: *sdl2_ttf.Font,
+    prompt_font: *sdl2_ttf.Font,
     rendered_name: std.StringHashMap(*sdl2.Surface),
     rendered_description: std.StringHashMap(*sdl2.Surface),
+    rendered_prompt: std.StringHashMap(*sdl2.Surface),
 
     hand_anim_state: std.ArrayList(HandAnimState),
     const HandAnimState = struct {
@@ -42,11 +47,14 @@ pub const Renderer = struct {
         const path = "C:/Windows/Fonts/georgia.ttf";
         const name_font = sdl2_ttf.openFont(path, 20, 0) orelse return error.OpenFont;
         const description_font = sdl2_ttf.openFont(path, 14, 0) orelse return error.OpenFont;
+        const prompt_font = sdl2_ttf.openFont(path, 20, 0) orelse return error.OpenFont;
         return Renderer{
             .name_font = name_font,
             .description_font = description_font,
+            .prompt_font = prompt_font,
             .rendered_name = std.StringHashMap(*sdl2.Surface).init(allocator),
             .rendered_description = std.StringHashMap(*sdl2.Surface).init(allocator),
+            .rendered_prompt = std.StringHashMap(*sdl2.Surface).init(allocator),
 
             .hand_anim_state = std.ArrayList(HandAnimState).init(allocator),
         };
@@ -55,8 +63,10 @@ pub const Renderer = struct {
     pub fn deinit(renderer: *Renderer) void {
         sdl2_ttf.closeFont(renderer.name_font);
         sdl2_ttf.closeFont(renderer.description_font);
+        sdl2_ttf.closeFont(renderer.prompt_font);
         renderer.rendered_name.deinit();
         renderer.rendered_description.deinit();
+        renderer.rendered_prompt.deinit();
 
         renderer.hand_anim_state.deinit();
     }
@@ -73,32 +83,88 @@ pub const Renderer = struct {
             try surface.fill(sdl2.mapRGB(surface.format, 0xff, 0xff, 0xff));
 
             try renderer.renderPlay(state, surface);
+            const played_card = try renderer.renderHand(state, surface, mouse_point, &mouse_down, ticks);
+            const submitted = try renderer.renderPrompt(state, surface, mouse_point, &mouse_down);
 
-            const mcard = try renderer.renderHand(state, surface, mouse_point, &mouse_down, ticks);
+            var check_prompt = false;
+            if (submitted) {
+                std.debug.assert(played_card == null);
 
-            if (mcard) |card| {
-                // Play the card.
-                const card_stack = try std.heap.c_allocator.allocWithOptions(u8, card.action.frame_size, 8, null);
-                defer std.heap.c_allocator.free(card_stack);
+                // Submit the prompt.
+                resume state.prompt_frame.?;
 
-                _ = @asyncCall(card_stack, {}, card.action.func, .{card, state});
-
-                if (state.prompt != null) {
-                    std.debug.panic("unimplemented", .{});
-                    resume state.prompt_frame.?;
-                }
-
+                // Check for another prompt.
                 repaint = true;
+                check_prompt = true;
+            }
+
+            if (played_card) |card| {
+                std.debug.assert(!submitted);
+
+                // Play the card.
+                state.card_stack = try std.heap.c_allocator.allocWithOptions(u8, card.action.frame_size, 8, null);
+                state.card_frame = @asyncCall(state.card_stack.?, {}, card.action.func, .{card, state});
+
+                // Check for a prompt.
+                repaint = true;
+                check_prompt = true;
+            }
+
+            if (check_prompt and state.prompt == null) {
+                // No prompt needed; process any errors that were encountered then deinit.
+                try nosuspend await state.card_frame.?;
+                std.heap.c_allocator.free(state.card_stack.?);
+
+                state.card_stack = null;
+                state.card_frame = null;
             }
         }
+    }
+
+    pub fn renderPrompt(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
+                        mouse_point: ?sdl2.Point, mouse_down: *bool) !bool {
+        if (state.prompt) |prompt| {
+            const submit = try renderText(renderer.prompt_font, &renderer.rendered_prompt,
+                                          "Submit", @intCast(u32, surface.w));
+
+            const submit_rect_w = submit.w + submit_padding * 2;
+            const message = try renderText(renderer.prompt_font, &renderer.rendered_prompt,
+                                           prompt.message, @intCast(u32, surface.w - (submit_rect_w + prompt_margin) * 2));
+            const above_hand = surface.h - hand_height - message.h - prompt_margin;
+            _ = try sdl2.blitSurface(message, null, surface,
+                                     sdl2.Point{ .x = @divFloor(surface.w -% message.w, 2),
+                                                 .y = above_hand });
+
+
+            const submit_point = .{ .x = surface.w - submit.w - prompt_margin, .y = above_hand };
+            const submit_rect = sdl2.Rect{ .x = submit_point.x - submit_padding, .y = submit_point.y - submit_padding,
+                                           .w = submit_rect_w, .h = submit.h + submit_padding * 2, };
+
+            var submit_rect_color = sdl2.mapRGB(surface.format, 0x0d, 0xb8, 0xce);
+            if (mouse_point) |mouse| {
+                if (submit_rect.contains(mouse)) {
+                    if (mouse_down.*) {
+                        mouse_down.* = false;
+                        return true;
+                    }
+                    submit_rect_color = sdl2.mapRGB(surface.format, 0x4d, 0xe0, 0xf4);
+                }
+            }
+
+            try surface.fillRect(submit_rect, submit_rect_color);
+
+            _ = try sdl2.blitSurface(submit, null, surface, submit_point);
+        }
+
+        return false;
     }
 
     pub fn renderHand(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
                       mouse_point: ?sdl2.Point, mouse_down: *bool, ticks: u32) !?Card {
         const player = state.activePlayer();
 
-        try surface.fillRect(.{ .x = 0, .y = surface.h - (card_height + card_margin),
-                                .w = surface.w, .h = (card_height + card_margin) },
+        try surface.fillRect(.{ .x = 0, .y = surface.h - hand_height,
+                                .w = surface.w, .h = hand_height },
                              sdl2.mapRGB(surface.format, 0xcc, 0xcc, 0xcc));
 
         // Add empty elements for drawn cards.
@@ -249,8 +315,8 @@ pub const Renderer = struct {
                                 .w = card_rect.w - 2, .h = card_rect.h - 2 },
                              sdl2.mapColorRGB(surface.format, background));
 
-        const name = try renderText(renderer.name_font, &renderer.rendered_name, card.name);
-        const description = try renderText(renderer.description_font, &renderer.rendered_description,
+        const name = try renderCardText(renderer.name_font, &renderer.rendered_name, card.name);
+        const description = try renderCardText(renderer.description_font, &renderer.rendered_description,
                                            card.description);
 
         var point = sdl2.Point{ .x = card_rect.x + card_padding,
@@ -292,13 +358,18 @@ pub const Renderer = struct {
     }
 };
 
+fn renderCardText(font: *sdl2_ttf.Font, map: *std.StringHashMap(*sdl2.Surface),
+                  text: [:0]const u8) !*sdl2.Surface {
+    return renderText(font, map, text, card_width - card_padding * 2);
+}
+
 fn renderText(font: *sdl2_ttf.Font, map: *std.StringHashMap(*sdl2.Surface),
-              text: [:0]const u8) !*sdl2.Surface {
+              text: [:0]const u8, wrap: u32) !*sdl2.Surface {
     if (map.get(text)) |surface|
         return surface;
 
     const black = sdl2_ttf.Color{ .r = 0, .g = 0, .b = 0, .a = 0xff };
-    if (sdl2_ttf.renderTextBlendedWrapped(font, text, black, card_width - card_padding * 2))
+    if (sdl2_ttf.renderTextBlendedWrapped(font, text, black, wrap))
         |surface| {
         try map.put(text, surface);
         return surface;

@@ -2,6 +2,7 @@ const std = @import("std");
 usingnamespace @import("card.zig");
 usingnamespace @import("cards/copper.zig");
 usingnamespace @import("cards/estate.zig");
+usingnamespace @import("error.zig");
 
 pub const State = struct {
     players: []Player,
@@ -11,6 +12,9 @@ pub const State = struct {
     prompt: ?Prompt,
     prompt_result: ?std.DynamicBitSet,
     prompt_frame: ?anyframe,
+    card_stack: ?[]align(8) u8,
+    card_frame: ?anyframe->Error!void,
+
     /// Input stack is only used for testing.
     input_stack: std.ArrayList(MockInput),
 
@@ -47,6 +51,9 @@ pub const State = struct {
             .prompt = null,
             .prompt_result = null,
             .prompt_frame = null,
+            .card_stack = null,
+            .card_frame = null,
+
             .input_stack = std.ArrayList(MockInput).init(allocator),
 
             .prng = prng,
@@ -72,7 +79,7 @@ pub const State = struct {
     }
 
     pub const Prompt = struct {
-        message: []const u8,
+        message: [:0]const u8,
         location: CardLocation,
         predicate: fn(Card)bool = struct { pub fn accept(_: Card) bool { return true; } }.accept,
         min: usize = 0,
