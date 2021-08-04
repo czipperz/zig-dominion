@@ -50,6 +50,9 @@ pub const State = struct {
     pub fn activePlayer(state: *State) *Player {
         return &state.players[state.active_player];
     }
+    pub fn activePlayerConst(state: *const State) *const Player {
+        return &state.players[state.active_player];
+    }
 
     pub fn deinit(state: *State) void {
         const allocator = std.heap.c_allocator;
@@ -109,6 +112,11 @@ pub const Player = struct {
         player.deck.deinit();
         player.discard.deinit();
         player.play.deinit();
+    }
+
+    pub fn totalCards(player: *const Player) usize {
+        return player.hand.items.len + player.deck.items.len
+             + player.discard.items.len + player.play.items.len;
     }
 
     pub fn addToPlay(player: *Player, card: Card) !void {
