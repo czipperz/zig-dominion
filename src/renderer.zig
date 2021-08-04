@@ -29,8 +29,10 @@ pub const Renderer = struct {
 
     hand_anim_state: std.ArrayList(HandAnimState),
     const HandAnimState = struct {
-        state: enum { selected, deselected, none },
-        start: u32,
+        ystate: enum { selected, deselected, none } = .none,
+        ystart: u32 = 0,
+        xoffset: u32 = 0,
+        xstart: u32 = 0,
     };
 
     pub fn init() !Renderer {
@@ -58,7 +60,8 @@ pub const Renderer = struct {
     }
 
     pub fn render(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
-                  mouse_point: ?sdl2.Point) !void {
+                  mouse_point: ?sdl2.Point, mouse_down_in: bool) !void {
+        var mouse_down = mouse_down_in;
         const ticks = sdl2.getTicks();
 
         const player = state.activePlayer();
@@ -67,74 +70,115 @@ pub const Renderer = struct {
         if (renderer.hand_anim_state.items.len < player.hand.items.len) {
             try renderer.hand_anim_state.ensureTotalCapacity(player.hand.items.len);
             while (renderer.hand_anim_state.items.len < player.hand.items.len) {
-                renderer.hand_anim_state.appendAssumeCapacity(.{ .state = .none, .start = 0, });
+                renderer.hand_anim_state.appendAssumeCapacity(.{});
             }
         }
         // Truncate off other elements.
         renderer.hand_anim_state.items.len = player.hand.items.len;
 
-        const hand_anim_state = renderer.hand_anim_state.items;
-
         const white = sdl2.mapRGB(surface.format, 0xff, 0xff, 0xff);
         try surface.fillRect(null, white);
 
-        var hand_card_rects = try std.heap.c_allocator.alloc(sdl2.Rect, player.hand.items.len);
-        defer std.heap.c_allocator.free(hand_card_rects);
-        for (player.hand.items) |_, i| {
-            hand_card_rects[i] = .{
+        const yanimtime = 500;
+        const xanimtime = 500;
+
+        var i: usize = 0; while (i < player.hand.items.len) : (i +%= 1) {
+            ////////////////// UPDATE /////////////////
+            const hand_anim_state = renderer.hand_anim_state.items;
+
+            var card_rect = .{
                 .x = (card_width + card_margin) * @intCast(c_int, i) + card_margin,
                 .y = surface.h - card_height,
                 .w = card_width,
                 .h = card_height,
             };
 
-            const start = hand_anim_state[i].start;
+            const ystart = hand_anim_state[i].ystart;
 
             // Deselect animations complete by changing to no animation.
-            if (hand_anim_state[i].state == .deselected) {
-                if (ticks - start >= 100)
-                    hand_anim_state[i] = .{ .state = .none, .start = 0 };
+            if (hand_anim_state[i].ystate == .deselected) {
+                if (ticks - ystart >= yanimtime) {
+                    hand_anim_state[i].ystate = .none;
+                }
             }
 
             // Note: negative is up.
-            const y_offset = switch (hand_anim_state[i].state) {
-                .selected   => -@floatToInt(c_int, lerp(ticks - start, 100, 0, 50)),
-                .deselected => -@floatToInt(c_int, lerp(ticks - start, 100, 50, 0)),
+            const y_offset = switch (hand_anim_state[i].ystate) {
+                .selected   => -@floatToInt(c_int, lerp(ticks - ystart, yanimtime, 0, 50)),
+                .deselected => -@floatToInt(c_int, lerp(ticks - ystart, yanimtime, 50, 0)),
                 .none       => 0,
             };
-            hand_card_rects[i].y += y_offset;
+            card_rect.y += y_offset;
+
+            // Process x offset (card was removed).
+            if (hand_anim_state[i].xoffset > 0) {
+                while (ticks - hand_anim_state[i].xstart > xanimtime and
+                       hand_anim_state[i].xoffset > 0) {
+                    hand_anim_state[i].xstart += xanimtime;
+                    hand_anim_state[i].xoffset -= 1;
+                }
+
+                if (hand_anim_state[i].xoffset > 0) {
+                    const x_offset = (lerp(ticks - hand_anim_state[i].xstart, xanimtime, 0, -1)
+                                      + @intToFloat(f32, hand_anim_state[i].xoffset))
+                                   * @intToFloat(f32, card_width + card_margin);
+                    card_rect.x += @floatToInt(c_int, x_offset);
+                }
+            }
 
             // Test if the current or default region for the card contains the cursor.
             var contains_mouse = false;
             if (mouse_point) |mouse| {
-                var intersect_rect = hand_card_rects[i];
+                var intersect_rect: sdl2.Rect = card_rect;
                 intersect_rect.h -= y_offset;
                 contains_mouse = intersect_rect.contains(mouse);
             }
 
             // Update state based on mouse intersection.
             if (contains_mouse) {
-                switch (hand_anim_state[i].state) {
+                if (mouse_down) {
+                    const card = player.hand.orderedRemove(i);
+                    _ = renderer.hand_anim_state.orderedRemove(i);
+
+                    // Play the card.
+                    try card.action(state);
+
+                    var j: usize = i; while (j < hand_anim_state.len) : (j += 1) {
+                        if (hand_anim_state[j].xoffset == 0) {
+                            hand_anim_state[j].xstart = ticks;
+                        }
+                        hand_anim_state[j].xoffset += 1;
+                    }
+
+                    mouse_down = false;
+                    i -%= 1;
+                    continue;
+                }
+
+                switch (hand_anim_state[i].ystate) {
                     .selected   => {},
-                    .deselected => hand_anim_state[i] = .{ .state = .selected,
-                                                           .start = ticks - (100 - @minimum(100, ticks - start)), },
-                    .none       => hand_anim_state[i] = .{ .state = .selected, .start = ticks, },
+                    .deselected => {
+                        hand_anim_state[i].ystate = .selected;
+                        hand_anim_state[i].ystart = ticks - (yanimtime - @minimum(yanimtime, ticks - ystart));
+                    },
+                    .none       => {
+                        hand_anim_state[i].ystate = .selected;
+                        hand_anim_state[i].ystart = ticks;
+                    },
                 }
             } else {
-                switch (hand_anim_state[i].state) {
-                    .selected => hand_anim_state[i] = .{ .state = .deselected,
-                                                         .start = ticks - (100 - @minimum(100, ticks - start)), },
-                    .deselected, .none => {},
+                if (hand_anim_state[i].ystate == .selected) {
+                    hand_anim_state[i].ystate = .deselected;
+                    hand_anim_state[i].ystart = ticks - (yanimtime - @minimum(yanimtime, ticks - ystart));
                 }
             }
-        }
 
-        for (player.hand.items) |card, i| {
-            const card_rect = hand_card_rects[i];
+            /////////////// RENDER ///////////////
+            const card = player.hand.items[i];
 
-            const shadow_height = switch (hand_anim_state[i].state) {
-                .selected   => @floatToInt(c_int, lerp(ticks - hand_anim_state[i].start, 100, 3, 9)),
-                .deselected => @floatToInt(c_int, lerp(ticks - hand_anim_state[i].start, 100, 9, 3)),
+            const shadow_height = switch (hand_anim_state[i].ystate) {
+                .selected   => @floatToInt(c_int, lerp(ticks - hand_anim_state[i].ystart, yanimtime, 3, 9)),
+                .deselected => @floatToInt(c_int, lerp(ticks - hand_anim_state[i].ystart, yanimtime, 9, 3)),
                 .none       => 3,
             };
 

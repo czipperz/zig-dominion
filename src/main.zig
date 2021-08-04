@@ -25,6 +25,7 @@ pub fn main() anyerror!void {
 
     while (true) {
         const start_frame = sdl2.getTicks();
+        var mouse_down = false;
 
         while (sdl2.pollEvent()) |event| {
             switch (event.type) {
@@ -32,6 +33,10 @@ pub fn main() anyerror!void {
                 .key_down => {
                     if (event.key.keysym.sym == .escape)
                         return;
+                },
+                .mouse_button_down => {
+                    if (event.button.button == .left)
+                        mouse_down = true;
                 },
                 .mouse_motion => {
                     mouse_point = .{ .x = event.motion.x, .y = event.motion.y };
@@ -46,7 +51,7 @@ pub fn main() anyerror!void {
 
         const surface = sdl2.getWindowSurface(window)
                         orelse return error.SDL2_Video;
-        try renderer.render(&state, surface, mouse_point);
+        try renderer.render(&state, surface, mouse_point, mouse_down);
         try sdl2.updateWindowSurface(window);
 
         const frame_length = 1000 / 60;
