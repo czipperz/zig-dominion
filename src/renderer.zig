@@ -78,6 +78,13 @@ pub const Renderer = struct {
 
         try surface.fill(sdl2.mapRGB(surface.format, 0xff, 0xff, 0xff));
 
+        try renderer.renderHand(state, surface, mouse_point, &mouse_down, ticks);
+    }
+
+    pub fn renderHand(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
+                      mouse_point: ?sdl2.Point, mouse_down: *bool, ticks: u32) !void {
+        const player = state.activePlayer();
+
         try surface.fillRect(.{ .x = 0, .y = surface.h - (card_height + card_margin),
                                 .w = surface.w, .h = (card_height + card_margin) },
                              sdl2.mapRGB(surface.format, 0xcc, 0xcc, 0xcc));
@@ -139,7 +146,7 @@ pub const Renderer = struct {
 
             // Update state based on mouse intersection.
             if (contains_mouse) {
-                if (mouse_down) {
+                if (mouse_down.*) {
                     const card = player.hand.orderedRemove(i);
                     _ = renderer.hand_anim_state.orderedRemove(i);
 
@@ -153,7 +160,7 @@ pub const Renderer = struct {
                         hand_anim_state[j].xoffset += 1;
                     }
 
-                    mouse_down = false;
+                    mouse_down.* = false;
                     i -%= 1;
                     continue;
                 }
