@@ -5,7 +5,7 @@ usingnamespace @import("error.zig");
 pub fn doNothing(self: Card, state: *State) !void {
     const player = state.activePlayer();
 
-    try player.play.append(self);
+    try player.addToPlay(self);
 }
 
 pub fn staticScore(comptime num: i32) fn(*const State)i32 {

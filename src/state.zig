@@ -22,24 +22,17 @@ pub const State = struct {
         std.debug.assert(num_players > 0);
         const players = try allocator.alloc(Player, num_players);
         for (players) |*player| {
-            var deck = std.ArrayList(Card).init(allocator);
-            try deck.ensureTotalCapacity(10);
+            player.* = Player.init(allocator);
+
+            try player.deck.ensureTotalCapacity(10);
             var i: usize = 0; while (i < 7) : (i += 1) {
-                deck.appendAssumeCapacity(&copper);
+                player.deck.appendAssumeCapacity(&copper);
             }
             i = 0; while (i < 3) : (i += 1) {
-                deck.appendAssumeCapacity(&estate);
+                player.deck.appendAssumeCapacity(&estate);
             }
-            prng.random.shuffle(Card, deck.items);
+            prng.random.shuffle(Card, player.deck.items);
 
-            player.* = .{
-                .coins = 0,
-                .actions = 1,
-                .hand = std.ArrayList(Card).init(allocator),
-                .deck = deck,
-                .discard = std.ArrayList(Card).init(allocator),
-                .play = std.ArrayList(Card).init(allocator),
-            };
             try player.draw(&prng.random, 5);
         }
 
@@ -100,11 +93,36 @@ pub const Player = struct {
     discard: std.ArrayList(Card),
     play: std.ArrayList(Card),
 
+    pub fn init(allocator: *std.mem.Allocator) Player {
+        return .{
+            .coins = 0,
+            .actions = 1,
+            .hand = std.ArrayList(Card).init(allocator),
+            .deck = std.ArrayList(Card).init(allocator),
+            .discard = std.ArrayList(Card).init(allocator),
+            .play = std.ArrayList(Card).init(allocator),
+        };
+    }
+
     pub fn deinit(player: *Player) void {
         player.hand.deinit();
         player.deck.deinit();
         player.discard.deinit();
         player.play.deinit();
+    }
+
+    pub fn addToPlay(player: *Player, card: Card) !void {
+        for (player.play.items) |pc, i| {
+            if (pc == card) {
+                var j = i + 1; while (j < player.play.items.len) : (j += 1) {
+                    if (player.play.items[j] != card) break;
+                }
+
+                try player.play.insert(j, card);
+                return;
+            }
+        }
+        try player.play.append(card);
     }
 
     /// Draw the specified number of cards.
@@ -160,3 +178,27 @@ pub const CardLocation = enum {
     hand,
     discard,
 };
+
+const expect = std.testing.expect;
+
+test "addToPlay does in order" {
+    const cards = @import("cards.zig");
+
+    var player = Player.init(std.heap.c_allocator);
+    defer player.deinit();
+    try expect(player.play.items.len == 0);
+
+    try player.addToPlay(&cards.chapel);
+    try expect(player.play.items.len == 1);
+
+    try player.addToPlay(&cards.copper);
+    try expect(player.play.items.len == 2);
+    try expect(player.play.items[0] == &cards.chapel);
+    try expect(player.play.items[1] == &cards.copper);
+
+    try player.addToPlay(&cards.chapel);
+    try expect(player.play.items.len == 3);
+    try expect(player.play.items[0] == &cards.chapel);
+    try expect(player.play.items[1] == &cards.chapel);
+    try expect(player.play.items[2] == &cards.copper);
+}

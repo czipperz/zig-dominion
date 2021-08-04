@@ -7,7 +7,7 @@ pub fn playTreasure(comptime num: u32) fn(Card, *State)Error!void {
         fn action(self: Card, state: *State) !void {
             const player = state.activePlayer();
 
-            try player.play.append(self);
+            try player.addToPlay(self);
 
             player.coins += num;
         }

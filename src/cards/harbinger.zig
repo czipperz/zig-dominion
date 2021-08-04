@@ -5,7 +5,7 @@ usingnamespace @import("../state.zig");
 fn action(self: Card, state: *State) !void {
     const player = state.activePlayer();
 
-    try player.play.append(self);
+    try player.addToPlay(self);
 
     try player.draw(state.random(), 1);
     player.actions += 1;
