@@ -210,14 +210,25 @@ pub const Renderer = struct {
         const shadow_color = .{ .r = 0x33, .g = 0x33, .b = 0x33 };
         try surface.fillRect(shadow_rect, sdl2.mapColorRGB(surface.format, shadow_color));
 
+        const border: sdl2.ColorRGB = switch (card.type) {
+            .treasure => .{ .r = 0x53, .g = 0x33, .b = 0x04 },
+            .curse    => .{ .r = 0x3f, .g = 0x0b, .b = 0x52 },
+            .victory  => .{ .r = 0x04, .g = 0x97, .b = 0x02 },
+            .action_general, .action_attack, .action_reaction
+                      => .{ .r = 0x4d, .g = 0x4d, .b = 0x4d },
+        };
+        try surface.fillRect(card_rect, sdl2.mapColorRGB(surface.format, border));
+
         const background: sdl2.ColorRGB = switch (card.type) {
             .treasure => .{ .r = 0xe6, .g = 0x8e, .b = 0x0b },
-            .curse    => .{ .r = 0x3f, .g = 0x0b, .b = 0x52 },
-            .victory  => .{ .r = 0xc0, .g = 0xff, .b = 0xee },
+            .curse    => .{ .r = 0xa6, .g = 0x1d, .b = 0xd7 },
+            .victory  => .{ .r = 0x39, .g = 0xfc, .b = 0x35 },
             .action_general, .action_attack, .action_reaction
                       => .{ .r = 0xcb, .g = 0xcb, .b = 0xcb },
         };
-        try surface.fillRect(card_rect, sdl2.mapColorRGB(surface.format, background));
+        try surface.fillRect(.{ .x = card_rect.x + 1, .y = card_rect.y + 1,
+                                .w = card_rect.w - 2, .h = card_rect.h - 2 },
+                             sdl2.mapColorRGB(surface.format, background));
 
         const name = try renderText(renderer.name_font, &renderer.rendered_name, card.name);
         const description = try renderText(renderer.description_font, &renderer.rendered_description,
@@ -250,7 +261,7 @@ pub const Renderer = struct {
 
             const card_rect = .{
                 .x = (card_width + card_margin) * @intCast(c_int, i - xoffset) + card_margin,
-                .y = 100 + 30 * yoffset,
+                .y = 100 + 35 * yoffset,
                 .w = card_width,
                 .h = card_height,
             };
