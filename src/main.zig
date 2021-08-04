@@ -21,6 +21,8 @@ pub fn main() anyerror!void {
     var renderer = try Renderer.init();
     defer renderer.deinit();
 
+    var mouse_point: ?sdl2.Point = null;
+
     while (true) {
         const start_frame = sdl2.getTicks();
 
@@ -31,13 +33,20 @@ pub fn main() anyerror!void {
                     if (event.key.keysym.sym == .escape)
                         return;
                 },
+                .mouse_motion => {
+                    mouse_point = .{ .x = event.motion.x, .y = event.motion.y };
+                },
+                .window => {
+                    if (event.window.event == .leave)
+                        mouse_point = null;
+                },
                 else => {},
             }
         }
 
         const surface = sdl2.getWindowSurface(window)
                         orelse return error.SDL2_Video;
-        try renderer.render(&state, surface);
+        try renderer.render(&state, surface, mouse_point);
         try sdl2.updateWindowSurface(window);
 
         const frame_length = 1000 / 60;
