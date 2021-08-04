@@ -2,8 +2,10 @@ usingnamespace @import("../card.zig");
 usingnamespace @import("../victory.zig");
 usingnamespace @import("../state.zig");
 
-fn action(state: *State) !void {
+fn action(self: Card, state: *State) !void {
     const player = state.activePlayer();
+
+    try player.play.append(self);
 
     player.actions += 1;
 
@@ -41,4 +43,5 @@ test {
     const player = scenario.state.activePlayer();
     try expect(player.hand.items.len == 2);
     try expect(scenario.state.trash.items.len == 3);
+    try expect(player.play.items.len == 1);
 }

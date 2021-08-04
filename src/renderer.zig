@@ -141,7 +141,7 @@ pub const Renderer = struct {
                     _ = renderer.hand_anim_state.orderedRemove(i);
 
                     // Play the card.
-                    try card.action(state);
+                    try card.action(card, state);
 
                     var j: usize = i; while (j < hand_anim_state.len) : (j += 1) {
                         if (hand_anim_state[j].xoffset == 0) {

@@ -8,7 +8,7 @@ pub const CardClass = struct {
     cost: u8,
     description: [:0]const u8,
     type: CardType,
-    action: fn(state: *State) Error!void,
+    action: fn(card: Card, state: *State) Error!void,
     victory_points: fn(state: *const State) i32 = noVictoryPoints,
 };
 

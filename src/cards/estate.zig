@@ -16,7 +16,11 @@ test {
     var scenario = try Scenario.simple(2);
     defer scenario.deinit();
 
-    try expect(scenario.state.activePlayer().victoryPoints(&scenario.state) == 3);
-    try scenario.state.activePlayer().deck.append(&estate);
-    try expect(scenario.state.activePlayer().victoryPoints(&scenario.state) == 4);
+    const player = scenario.state.activePlayer();
+    try expect(player.victoryPoints(&scenario.state) == 3);
+    try player.deck.append(&estate);
+    try expect(player.victoryPoints(&scenario.state) == 4);
+
+    try scenario.play(&estate);
+    try expect(player.play.items.len == 1);
 }

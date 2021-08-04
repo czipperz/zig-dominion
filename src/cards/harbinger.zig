@@ -2,8 +2,10 @@ usingnamespace @import("../card.zig");
 usingnamespace @import("../victory.zig");
 usingnamespace @import("../state.zig");
 
-fn action(state: *State) !void {
+fn action(self: Card, state: *State) !void {
     const player = state.activePlayer();
+
+    try player.play.append(self);
 
     try player.draw(state.random(), 1);
     player.actions += 1;
@@ -73,4 +75,5 @@ test "Harbinger don't select card" {
     try expect(player.hand.items.len == 6);
     try expect(player.discard.items.len == 3);
     try expect(player.deck.items.len == 4);
+    try expect(player.play.items.len == 1);
 }

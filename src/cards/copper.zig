@@ -16,5 +16,8 @@ test {
     defer scenario.deinit();
 
     try scenario.play(&copper);
-    try expect(scenario.state.activePlayer().coins == 1);
+
+    const player = scenario.state.activePlayer();
+    try expect(player.coins == 1);
+    try expect(player.play.items.len == 1);
 }

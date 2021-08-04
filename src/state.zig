@@ -38,6 +38,7 @@ pub const State = struct {
                 .hand = std.ArrayList(Card).init(allocator),
                 .deck = deck,
                 .discard = std.ArrayList(Card).init(allocator),
+                .play = std.ArrayList(Card).init(allocator),
             };
             try player.draw(&prng.random, 5);
         }
@@ -97,11 +98,13 @@ pub const Player = struct {
     hand: std.ArrayList(Card),
     deck: std.ArrayList(Card),
     discard: std.ArrayList(Card),
+    play: std.ArrayList(Card),
 
     pub fn deinit(player: *Player) void {
         player.hand.deinit();
         player.deck.deinit();
         player.discard.deinit();
+        player.play.deinit();
     }
 
     /// Draw the specified number of cards.
