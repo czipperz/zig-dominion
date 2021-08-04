@@ -12,17 +12,35 @@ pub const CardClass = struct {
     victory_points: fn(state: *const State) i32 = noVictoryPoints,
 };
 
-pub const CardAction = struct {
-    func: fn(card: Card, state: *State) callconv(.Async) Error!void,
-    frame_size: usize,
-};
+pub const CardAction =
+    if (@import("builtin").is_test)
+        struct {
+            func: fn(card: Card, state: *State) Error!void,
+        }
+    else
+        struct {
+            func: fn(card: Card, state: *State) callconv(.Async) Error!void,
+            frame_size: usize,
+        };
 
-pub fn action(comptime func: fn(card: Card, state: *State) callconv(.Async) Error!void) CardAction {
-    return .{
-        .func = func,
-        .frame_size = @sizeOf(@Frame(func)),
-    };
-}
+pub const action =
+    if (@import("builtin").is_test)
+        struct {
+            pub fn action(comptime func: fn(card: Card, state: *State) Error!void) CardAction {
+                return .{
+                    .func = func,
+                };
+            }
+        }.action
+    else
+        struct {
+            pub fn action(comptime func: fn(card: Card, state: *State) callconv(.Async) Error!void) CardAction {
+                return .{
+                    .func = func,
+                    .frame_size = @sizeOf(@Frame(func)),
+                };
+            }
+        }.action;
 
 fn noVictoryPoints(state: *const State) i32 {
     _ = state;

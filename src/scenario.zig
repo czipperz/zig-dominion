@@ -17,7 +17,7 @@ pub const Scenario = struct {
     }
 
     pub fn play(scenario: *Scenario, card: *const CardClass) !void {
-        return card.action(card, &scenario.state);
+        try card.action.func(card, &scenario.state);
     }
 
     pub fn pushSelectCards(scenario: *Scenario, cards: []const usize) !void {
