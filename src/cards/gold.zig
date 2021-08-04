@@ -6,7 +6,7 @@ pub const gold = CardClass {
     .cost = 6,
     .description = "Gain three coins",
     .type = .treasure,
-    .action = playTreasure(3),
+    .action = action(playTreasure(3)),
 };
 
 usingnamespace @import("../scenario.zig");

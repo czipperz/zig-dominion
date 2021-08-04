@@ -2,7 +2,7 @@ usingnamespace @import("../card.zig");
 usingnamespace @import("../victory.zig");
 usingnamespace @import("../state.zig");
 
-fn action(self: Card, state: *State) !void {
+fn playHarbinger(self: Card, state: *State) !void {
     const player = state.activePlayer();
 
     try player.addToPlay(self);
@@ -31,7 +31,7 @@ pub const harbinger = CardClass {
         \\Look through your discard pile. You may put a card from it onto your deck.
         ,
     .type = .action_general,
-    .action = action,
+    .action = action(playHarbinger),
 };
 
 usingnamespace @import("../scenario.zig");

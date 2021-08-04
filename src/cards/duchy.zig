@@ -6,7 +6,7 @@ pub const duchy = CardClass {
     .cost = 5,
     .description = "Worth 3 victory points",
     .type = .victory,
-    .action = doNothing,
+    .action = action(doNothing),
     .victory_points = staticScore(3),
 };
 

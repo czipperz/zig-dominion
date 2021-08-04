@@ -13,7 +13,7 @@ pub const gardens = CardClass {
     .cost = 4,
     .description = "Worth 1 victory point per 10 cards you have (round down).",
     .type = .victory,
-    .action = doNothing,
+    .action = action(doNothing),
     .victory_points = victoryPoints,
 };
 

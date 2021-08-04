@@ -6,7 +6,7 @@ pub const copper = CardClass {
     .cost = 0,
     .description = "Gain one coin",
     .type = .treasure,
-    .action = playTreasure(1),
+    .action = action(playTreasure(1)),
 };
 
 usingnamespace @import("../scenario.zig");

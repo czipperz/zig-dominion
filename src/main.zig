@@ -18,6 +18,11 @@ pub fn main() anyerror!void {
     var state = try State.setup(2);
     defer state.deinit();
 
+    for (state.players) |*player| {
+        const harbinger = @import("cards/harbinger.zig").harbinger;
+        try player.hand.append(&harbinger);
+    }
+
     var renderer = try Renderer.init();
     defer renderer.deinit();
 

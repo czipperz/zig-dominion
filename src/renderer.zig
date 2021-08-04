@@ -3,6 +3,7 @@ const sdl2 = @import("sdl2");
 const sdl2_ttf = @import("sdl2_ttf");
 usingnamespace @import("card.zig");
 usingnamespace @import("state.zig");
+usingnamespace @import("error.zig");
 
 pub const RenderError = error {
     OpenFont,
@@ -65,7 +66,40 @@ pub const Renderer = struct {
         var mouse_down = mouse_down_in;
         const ticks = sdl2.getTicks();
 
+        var repaint = true;
+        while (repaint) {
+            repaint = false;
+
+            try surface.fill(sdl2.mapRGB(surface.format, 0xff, 0xff, 0xff));
+
+            try renderer.renderPlay(state, surface);
+
+            const mcard = try renderer.renderHand(state, surface, mouse_point, &mouse_down, ticks);
+
+            if (mcard) |card| {
+                // Play the card.
+                const card_stack = try std.heap.c_allocator.allocWithOptions(u8, card.action.frame_size, 8, null);
+                defer std.heap.c_allocator.free(card_stack);
+
+                _ = @asyncCall(card_stack, {}, card.action.func, .{card, state});
+
+                if (state.prompt != null) {
+                    std.debug.panic("unimplemented", .{});
+                    resume state.prompt_frame.?;
+                }
+
+                repaint = true;
+            }
+        }
+    }
+
+    pub fn renderHand(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
+                      mouse_point: ?sdl2.Point, mouse_down: *bool, ticks: u32) !?Card {
         const player = state.activePlayer();
+
+        try surface.fillRect(.{ .x = 0, .y = surface.h - (card_height + card_margin),
+                                .w = surface.w, .h = (card_height + card_margin) },
+                             sdl2.mapRGB(surface.format, 0xcc, 0xcc, 0xcc));
 
         // Add empty elements for drawn cards.
         if (renderer.hand_anim_state.items.len < player.hand.items.len) {
@@ -76,20 +110,6 @@ pub const Renderer = struct {
         }
         // Truncate off other elements.
         renderer.hand_anim_state.items.len = player.hand.items.len;
-
-        try surface.fill(sdl2.mapRGB(surface.format, 0xff, 0xff, 0xff));
-
-        try renderer.renderPlay(state, surface);
-        try renderer.renderHand(state, surface, mouse_point, &mouse_down, ticks);
-    }
-
-    pub fn renderHand(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
-                      mouse_point: ?sdl2.Point, mouse_down: *bool, ticks: u32) !void {
-        const player = state.activePlayer();
-
-        try surface.fillRect(.{ .x = 0, .y = surface.h - (card_height + card_margin),
-                                .w = surface.w, .h = (card_height + card_margin) },
-                             sdl2.mapRGB(surface.format, 0xcc, 0xcc, 0xcc));
 
         const yanimtime = 100;
         const xanimtime = 100;
@@ -152,9 +172,6 @@ pub const Renderer = struct {
                     const card = player.hand.orderedRemove(i);
                     _ = renderer.hand_anim_state.orderedRemove(i);
 
-                    // Play the card.
-                    try card.action(card, state);
-
                     var j: usize = i; while (j < hand_anim_state.len) : (j += 1) {
                         if (hand_anim_state[j].xoffset == 0) {
                             hand_anim_state[j].xstart = ticks;
@@ -164,7 +181,7 @@ pub const Renderer = struct {
 
                     mouse_down.* = false;
                     i -%= 1;
-                    continue;
+                    return card;
                 }
 
                 switch (hand_anim_state[i].ystate) {
@@ -196,6 +213,8 @@ pub const Renderer = struct {
 
             try renderer.renderCard(surface, card, card_rect, shadow_height);
         }
+
+        return null;
     }
 
     pub fn renderCard(renderer: *Renderer, surface: *sdl2.Surface,

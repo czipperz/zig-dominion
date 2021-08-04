@@ -2,7 +2,7 @@ usingnamespace @import("../card.zig");
 usingnamespace @import("../victory.zig");
 usingnamespace @import("../state.zig");
 
-fn action(self: Card, state: *State) !void {
+fn playChapel(self: Card, state: *State) !void {
     const player = state.activePlayer();
 
     try player.addToPlay(self);
@@ -28,7 +28,7 @@ pub const chapel = CardClass {
     .cost = 2,
     .description = "Trash up to 4 cards from your hand.",
     .type = .action_general,
-    .action = action,
+    .action = action(playChapel),
 };
 
 usingnamespace @import("../scenario.zig");

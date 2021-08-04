@@ -6,7 +6,7 @@ pub const curse = CardClass {
     .cost = 0,
     .description = "Worth -1 victory point",
     .type = .curse,
-    .action = doNothing,
+    .action = action(doNothing),
     .victory_points = staticScore(-1),
 };
 

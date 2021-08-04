@@ -9,6 +9,8 @@ pub const State = struct {
     trash: std.ArrayList(Card),
 
     prompt: ?Prompt,
+    prompt_result: ?std.DynamicBitSet,
+    prompt_frame: ?anyframe,
     /// Input stack is only used for testing.
     input_stack: std.ArrayList(MockInput),
 
@@ -43,6 +45,8 @@ pub const State = struct {
             .trash = std.ArrayList(Card).init(allocator),
 
             .prompt = null,
+            .prompt_result = null,
+            .prompt_frame = null,
             .input_stack = std.ArrayList(MockInput).init(allocator),
 
             .prng = prng,
@@ -88,12 +92,7 @@ pub const State = struct {
                     var it = xxx.iterator(.{});
                     while (it.next()) |index| {
                         const player = state.activePlayer();
-                        const slice = switch (prompt.location) {
-                            .hand    => player.hand.items,
-                            .deck    => player.deck.items,
-                            .discard => player.discard.items,
-                            .play    => player.play.items,
-                        };
+                        const slice = player.getLocation(prompt.location);
                         std.debug.assert(prompt.predicate(slice[index]));
                     }
 
@@ -103,8 +102,20 @@ pub const State = struct {
             }
         } else {
             std.debug.assert(state.prompt == null);
+            std.debug.assert(state.prompt_result == null);
+
+            const size = state.activePlayer().getLocation(prompt.location).len;
+            var bit_set = try std.DynamicBitSet.initEmpty(size, std.heap.c_allocator);
+
             state.prompt = prompt;
-            suspend {}
+            state.prompt_result = bit_set;
+
+            suspend { state.prompt_frame = @frame(); }
+
+            const result = state.prompt_result.?;
+            state.prompt = null;
+            state.prompt_result = null;
+            return result;
         }
     }
 
@@ -141,6 +152,15 @@ pub const Player = struct {
     pub fn totalCards(player: *const Player) usize {
         return player.hand.items.len + player.deck.items.len
              + player.discard.items.len + player.play.items.len;
+    }
+
+    pub fn getLocation(player: *const Player, location: CardLocation) []const Card {
+        return switch (location) {
+            .hand    => player.hand.items,
+            .deck    => player.deck.items,
+            .discard => player.discard.items,
+            .play    => player.play.items,
+        };
     }
 
     pub fn addToPlay(player: *Player, card: Card) !void {

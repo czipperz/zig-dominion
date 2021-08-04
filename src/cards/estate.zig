@@ -6,7 +6,7 @@ pub const estate = CardClass {
     .cost = 2,
     .description = "Worth 1 victory point",
     .type = .victory,
-    .action = doNothing,
+    .action = action(doNothing),
     .victory_points = staticScore(1),
 };
 

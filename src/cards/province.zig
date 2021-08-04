@@ -6,7 +6,7 @@ pub const province = CardClass {
     .cost = 8,
     .description = "Worth 6 victory points",
     .type = .victory,
-    .action = doNothing,
+    .action = action(doNothing),
     .victory_points = staticScore(6),
 };
 

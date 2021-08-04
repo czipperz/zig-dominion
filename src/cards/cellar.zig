@@ -2,7 +2,7 @@ usingnamespace @import("../card.zig");
 usingnamespace @import("../victory.zig");
 usingnamespace @import("../state.zig");
 
-fn action(self: Card, state: *State) !void {
+fn playCellar(self: Card, state: *State) !void {
     const player = state.activePlayer();
 
     try player.addToPlay(self);
@@ -34,7 +34,7 @@ pub const cellar = CardClass {
         \\Discard any number of cards, then draw that many.
         ,
     .type = .action_general,
-    .action = action,
+    .action = action(playCellar),
 };
 
 usingnamespace @import("../scenario.zig");
