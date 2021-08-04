@@ -76,11 +76,10 @@ pub const Renderer = struct {
         // Truncate off other elements.
         renderer.hand_anim_state.items.len = player.hand.items.len;
 
-        const white = sdl2.mapRGB(surface.format, 0xff, 0xff, 0xff);
-        try surface.fillRect(null, white);
+        try surface.fill(sdl2.mapRGB(surface.format, 0xff, 0xff, 0xff));
 
-        try surface.fillRect(sdl2.Rect{ .x = 0, .y = surface.h - (card_height + card_margin),
-                                        .w = surface.w, .h = (card_height + card_margin) },
+        try surface.fillRect(.{ .x = 0, .y = surface.h - (card_height + card_margin),
+                                .w = surface.w, .h = (card_height + card_margin) },
                              sdl2.mapRGB(surface.format, 0xcc, 0xcc, 0xcc));
 
         const yanimtime = 100;
