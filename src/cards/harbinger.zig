@@ -11,8 +11,8 @@ fn action(self: Card, state: *State) !void {
     player.actions += 1;
 
     var cards = try state.selectCards(
-        "Look through your discard pile. You may put a card from it onto your deck.",
-        .discard, 0, 1);
+        .{ .message = "Look through your discard pile. You may put a card from it onto your deck.",
+           .location = .discard, .max = 1 });
     defer cards.deinit();
 
     if (cards.findFirstSet()) |index| {

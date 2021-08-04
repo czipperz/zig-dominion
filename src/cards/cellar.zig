@@ -9,9 +9,9 @@ fn action(self: Card, state: *State) !void {
 
     player.actions += 1;
 
-    var cards = try state.selectCards(
-                        "Discard any number of cards, then draw that many",
-                        .hand, 0, player.hand.items.len);
+    var cards = try state.selectCards(.{
+                        .message = "Discard any number of cards, then draw that many",
+                        .location = .hand, .max = player.hand.items.len });
     defer cards.deinit();
 
     const count = cards.count();

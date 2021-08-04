@@ -8,6 +8,7 @@ pub const State = struct {
     active_player: usize,
     trash: std.ArrayList(Card),
 
+    prompt: ?Prompt,
     /// Input stack is only used for testing.
     input_stack: std.ArrayList(MockInput),
 
@@ -41,6 +42,7 @@ pub const State = struct {
             .active_player = 0,
             .trash = std.ArrayList(Card).init(allocator),
 
+            .prompt = null,
             .input_stack = std.ArrayList(MockInput).init(allocator),
 
             .prng = prng,
@@ -65,23 +67,45 @@ pub const State = struct {
         state.trash.deinit();
     }
 
-    pub fn selectCards(state: *State, prompt: []const u8, comptime cardLocation: CardLocation,
-                       min: usize, max: usize) !std.DynamicBitSet {
-        if (state.input_stack.popOrNull()) |mock_input| {
-            switch (mock_input) {
+    pub const Prompt = struct {
+        message: []const u8,
+        location: CardLocation,
+        predicate: fn(Card)bool = struct { pub fn accept(_: Card) bool { return true; } }.accept,
+        min: usize = 0,
+        max: usize,
+    };
+
+    pub fn selectCards(state: *State, prompt: Prompt) !std.DynamicBitSet {
+        if (@import("builtin").is_test) {
+            switch (state.input_stack.pop()) {
                 .selected_cards => |bit_set| {
                     const count = bit_set.count();
-                    std.debug.assert(count >= min);
-                    std.debug.assert(count <= max);
+                    std.debug.assert(count >= prompt.min);
+                    std.debug.assert(count <= prompt.max);
+
+                    var xxx: *const std.DynamicBitSet = &bit_set;
+                    _ = xxx;
+                    var it = xxx.iterator(.{});
+                    while (it.next()) |index| {
+                        const player = state.activePlayer();
+                        const slice = switch (prompt.location) {
+                            .hand    => player.hand.items,
+                            .deck    => player.deck.items,
+                            .discard => player.discard.items,
+                            .play    => player.play.items,
+                        };
+                        std.debug.assert(prompt.predicate(slice[index]));
+                    }
+
                     return bit_set;
                 },
                 // else => std.debug.panic("Expected MockInput.select_cards, found {}", .{mock_input}),
             }
+        } else {
+            std.debug.assert(state.prompt == null);
+            state.prompt = prompt;
+            suspend {}
         }
-
-        _ = prompt;
-        _ = cardLocation;
-        std.debug.panic("unimplemented", .{});
     }
 
     pub fn random(state: *State) *std.rand.Random { return &state.prng.random; }
@@ -184,7 +208,9 @@ pub const MockInput = union(enum) {
 
 pub const CardLocation = enum {
     hand,
+    deck,
     discard,
+    play,
 };
 
 const expect = std.testing.expect;

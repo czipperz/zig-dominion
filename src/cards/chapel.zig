@@ -9,7 +9,8 @@ fn action(self: Card, state: *State) !void {
 
     player.actions += 1;
 
-    var cards = try state.selectCards("Trash up to 4 cards from your hand.", .hand, 0, 4);
+    var cards = try state.selectCards(.{ .message = "Trash up to 4 cards from your hand.",
+                                         .location = .hand, .max = 4 });
     defer cards.deinit();
 
     const count = cards.count();
