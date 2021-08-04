@@ -1,6 +1,7 @@
 const std = @import("std");
 const sdl2 = @import("sdl2");
 const sdl2_ttf = @import("sdl2_ttf");
+usingnamespace @import("card.zig");
 usingnamespace @import("state.zig");
 
 pub const RenderError = error {
@@ -78,6 +79,7 @@ pub const Renderer = struct {
 
         try surface.fill(sdl2.mapRGB(surface.format, 0xff, 0xff, 0xff));
 
+        try renderer.renderPlay(state, surface);
         try renderer.renderHand(state, surface, mouse_point, &mouse_down, ticks);
     }
 
@@ -192,36 +194,58 @@ pub const Renderer = struct {
                 .none       => 3,
             };
 
-            const shadow_rect = .{
-                .x = card_rect.x + shadow_height,
-                .y = card_rect.y + shadow_height,
-                .w = card_rect.w,
-                .h = card_rect.h,
+            try renderer.renderCard(surface, card, card_rect, shadow_height);
+        }
+    }
+
+    pub fn renderCard(renderer: *Renderer, surface: *sdl2.Surface,
+                      card: Card, card_rect: sdl2.Rect, shadow_height: c_int) !void {
+        const shadow_rect = .{
+            .x = card_rect.x + shadow_height,
+            .y = card_rect.y + shadow_height,
+            .w = card_rect.w,
+            .h = card_rect.h,
+        };
+
+        const shadow_color = .{ .r = 0x33, .g = 0x33, .b = 0x33 };
+        try surface.fillRect(shadow_rect, sdl2.mapColorRGB(surface.format, shadow_color));
+
+        const background: sdl2.ColorRGB = switch (card.type) {
+            .treasure => .{ .r = 0xe6, .g = 0x8e, .b = 0x0b },
+            .curse    => .{ .r = 0x3f, .g = 0x0b, .b = 0x52 },
+            .victory  => .{ .r = 0xc0, .g = 0xff, .b = 0xee },
+            .action_general, .action_attack, .action_reaction
+                      => .{ .r = 0xcb, .g = 0xcb, .b = 0xcb },
+        };
+        try surface.fillRect(card_rect, sdl2.mapColorRGB(surface.format, background));
+
+        const name = try renderText(renderer.name_font, &renderer.rendered_name, card.name);
+        const description = try renderText(renderer.description_font, &renderer.rendered_description,
+                                           card.description);
+
+        var point = sdl2.Point{ .x = card_rect.x + card_padding,
+                                .y = card_rect.y + card_padding };
+
+        _ = try sdl2.blitSurface(name, null, surface, point);
+        point.y += name.h + name_bottom_margin;
+
+        _ = try sdl2.blitSurface(description, null, surface, point);
+    }
+
+    pub fn renderPlay(renderer: *Renderer, state: *State, surface: *sdl2.Surface) !void {
+        const player = state.activePlayer();
+
+        for (player.play.items) |card, i| {
+            const card_rect = .{
+                .x = (card_width + card_margin) * @intCast(c_int, i) + card_margin,
+                .y = 100,
+                .w = card_width,
+                .h = card_height,
             };
 
-            const shadow_color = .{ .r = 0x33, .g = 0x33, .b = 0x33 };
-            try surface.fillRect(shadow_rect, sdl2.mapColorRGB(surface.format, shadow_color));
+            const shadow_height = 1;
 
-            const background: sdl2.ColorRGB = switch (card.type) {
-                .treasure => .{ .r = 0xe6, .g = 0x8e, .b = 0x0b },
-                .curse    => .{ .r = 0x3f, .g = 0x0b, .b = 0x52 },
-                .victory  => .{ .r = 0xc0, .g = 0xff, .b = 0xee },
-                .action_general, .action_attack, .action_reaction
-                          => .{ .r = 0xcb, .g = 0xcb, .b = 0xcb },
-            };
-            try surface.fillRect(card_rect, sdl2.mapColorRGB(surface.format, background));
-
-            const name = try renderText(renderer.name_font, &renderer.rendered_name, card.name);
-            const description = try renderText(renderer.description_font, &renderer.rendered_description,
-                                               card.description);
-
-            var point = sdl2.Point{ .x = card_rect.x + card_padding,
-                                    .y = card_rect.y + card_padding };
-
-            _ = try sdl2.blitSurface(name, null, surface, point);
-            point.y += name.h + name_bottom_margin;
-
-            _ = try sdl2.blitSurface(description, null, surface, point);
+            try renderer.renderCard(surface, card, card_rect, shadow_height);
         }
     }
 };
