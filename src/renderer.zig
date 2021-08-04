@@ -79,8 +79,8 @@ pub const Renderer = struct {
         const white = sdl2.mapRGB(surface.format, 0xff, 0xff, 0xff);
         try surface.fillRect(null, white);
 
-        const yanimtime = 500;
-        const xanimtime = 500;
+        const yanimtime = 100;
+        const xanimtime = 100;
 
         var i: usize = 0; while (i < player.hand.items.len) : (i +%= 1) {
             ////////////////// UPDATE /////////////////
