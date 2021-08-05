@@ -554,6 +554,9 @@ fn calculateScrollState(scroll_state: *Renderer.ScrollState, surface: *sdl2.Surf
                 / 20;
 
     // Bound scroll.
-    scroll_state.scroll = @minimum(scroll_state.scroll, @intToFloat(f32, (card_width + card_margin) * (@intCast(c_int, num_cards) + 1) + card_margin - surface.w));
+    var right_bound = (card_width + card_margin) * (@intCast(c_int, num_cards) + 1) + card_margin;
+    if (right_bound >= surface.w) right_bound -= surface.w
+    else                          right_bound = 0;
+    scroll_state.scroll = @minimum(scroll_state.scroll, @intToFloat(f32, right_bound));
     scroll_state.scroll = @maximum(scroll_state.scroll, -(card_width + card_margin));
 }
