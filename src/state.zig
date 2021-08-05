@@ -78,6 +78,17 @@ pub const State = struct {
         state.trash.deinit();
     }
 
+    pub fn playCard(state: *State, card: Card) !void {
+        switch (card.type) {
+            .treasure, .curse, .victory => {},
+            .action_general, .action_attack, .action_reaction =>
+                state.activePlayer().actions -= 1,
+        }
+
+        state.card_stack = try std.heap.c_allocator.allocWithOptions(u8, card.action.frame_size, 8, null);
+        state.card_frame = @asyncCall(state.card_stack.?, {}, card.action.func, .{card, state});
+    }
+
     pub const Prompt = struct {
         message: [:0]const u8,
         location: CardLocation,
@@ -171,12 +182,6 @@ pub const Player = struct {
     }
 
     pub fn addToPlay(player: *Player, card: Card) !void {
-        switch (card.type) {
-            .treasure, .curse, .victory => {},
-            .action_general, .action_attack, .action_reaction =>
-                player.actions -= 1,
-        }
-
         for (player.play.items) |pc, i| {
             if (pc == card) {
                 var j = i + 1; while (j < player.play.items.len) : (j += 1) {

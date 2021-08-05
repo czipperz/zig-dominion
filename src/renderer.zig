@@ -89,8 +89,7 @@ pub const Renderer = struct {
                 const played_card = try renderer.renderHand(state, surface, mouse_point, &mouse_down, ticks);
                 if (played_card) |card| {
                     // Play the card.
-                    state.card_stack = try std.heap.c_allocator.allocWithOptions(u8, card.action.frame_size, 8, null);
-                    state.card_frame = @asyncCall(state.card_stack.?, {}, card.action.func, .{card, state});
+                    try state.playCard(card);
 
                     // Check for a prompt.
                     repaint = true;
