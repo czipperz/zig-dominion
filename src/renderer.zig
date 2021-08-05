@@ -284,8 +284,8 @@ pub const Renderer = struct {
                                                &renderer.hand_inside_right_since))
                     / 20;
 
+        renderer.hand_scroll = @minimum(renderer.hand_scroll, @intToFloat(f32, (card_width + card_margin) * (@intCast(c_int, player.hand.items.len) + 1) + card_margin - surface.w));
         renderer.hand_scroll = @maximum(renderer.hand_scroll, -(card_width + card_margin));
-        renderer.hand_scroll = @minimum(renderer.hand_scroll, @intToFloat(f32, (card_width + card_margin) * (player.hand.items.len + 1) + card_margin - @intCast(usize, surface.w)));
 
         // Add empty elements for drawn cards.
         if (renderer.hand_anim_state.items.len < player.hand.items.len) {
