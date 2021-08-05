@@ -5,8 +5,6 @@ usingnamespace @import("../state.zig");
 fn playCellar(self: Card, state: *State) !void {
     const player = state.activePlayer();
 
-    try player.addToPlay(self);
-
     player.actions += 1;
 
     var cards = try state.selectCards(.{

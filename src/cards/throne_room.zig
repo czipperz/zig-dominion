@@ -9,8 +9,6 @@ fn isAction(card: Card) bool {
 fn playThroneRoom(self: Card, state: *State) !void {
     const player = state.activePlayer();
 
-    try player.addToPlay(self);
-
     var cards = try state.selectCards(.{
                         .message = "You may play an Action card from your hand twice.",
                         .location = .hand, .max = 1, .predicate = isAction });

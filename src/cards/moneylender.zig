@@ -10,8 +10,6 @@ fn isCopper(card: Card) bool {
 fn playMoneylender(self: Card, state: *State) !void {
     const player = state.activePlayer();
 
-    try player.addToPlay(self);
-
     var cards = try state.selectCards(
         .{ .message = "You may trash a Copper from your hand for +3 coins.",
            .location = .hand, .max = 1, .predicate = isCopper, });

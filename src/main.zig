@@ -19,8 +19,12 @@ pub fn main() anyerror!void {
     defer state.deinit();
 
     for (state.players) |*player| {
-        const harbinger = @import("cards/harbinger.zig").harbinger;
-        try player.hand.append(&harbinger);
+        const cards = @import("cards.zig");
+        try player.hand.append(&cards.moneylender);
+        try player.hand.append(&cards.throne_room);
+        try player.discard.append(&cards.copper);
+        try player.discard.append(&cards.silver);
+        try player.discard.append(&cards.harbinger);
     }
 
     var renderer = try Renderer.init();

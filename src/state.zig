@@ -79,8 +79,10 @@ pub const State = struct {
     }
 
     pub fn playCard(state: *State, card: Card) !void {
+        const player = state.activePlayer();
         if (card.isAction())
-            state.activePlayer().actions -= 1;
+            player.actions -= 1;
+        try player.addToPlay(card);
 
         state.card_stack = try std.heap.c_allocator.allocWithOptions(u8, card.action.frame_size, 8, null);
         state.card_frame = @asyncCall(state.card_stack.?, {}, card.action.func, .{card, state});

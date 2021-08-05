@@ -5,8 +5,6 @@ usingnamespace @import("../state.zig");
 fn playHarbinger(self: Card, state: *State) !void {
     const player = state.activePlayer();
 
-    try player.addToPlay(self);
-
     try player.draw(state.random(), 1);
     player.actions += 1;
 

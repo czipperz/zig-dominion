@@ -5,8 +5,6 @@ usingnamespace @import("../state.zig");
 fn playSmithy(self: Card, state: *State) !void {
     const player = state.activePlayer();
 
-    try player.addToPlay(self);
-
     try player.draw(state.random(), 3);
 }
 

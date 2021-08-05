@@ -5,8 +5,6 @@ usingnamespace @import("../state.zig");
 fn playChapel(self: Card, state: *State) !void {
     const player = state.activePlayer();
 
-    try player.addToPlay(self);
-
     var cards = try state.selectCards(.{ .message = "Trash up to 4 cards from your hand.",
                                          .location = .hand, .max = 4 });
     defer cards.deinit();

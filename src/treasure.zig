@@ -5,9 +5,9 @@ usingnamespace @import("error.zig");
 pub fn playTreasure(comptime num: u32) fn(Card, *State)Error!void {
     return struct {
         fn action(self: Card, state: *State) !void {
-            const player = state.activePlayer();
+            _ = self;
 
-            try player.addToPlay(self);
+            const player = state.activePlayer();
 
             player.coins += num;
         }
