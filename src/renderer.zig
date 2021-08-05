@@ -18,6 +18,8 @@ const card_margin = 10;
 const name_bottom_margin = 10;
 const prompt_margin = 10;
 const submit_padding = 4;
+const info_margin = 10;
+const info_spacer = 15;
 
 fn lerp(ticks_now: u32, ticks_end: u32, fstart: f32, fend: f32) f32 {
     var result = fend;
@@ -30,9 +32,12 @@ pub const Renderer = struct {
     name_font: *sdl2_ttf.Font,
     description_font: *sdl2_ttf.Font,
     prompt_font: *sdl2_ttf.Font,
+    info_font: *sdl2_ttf.Font,
     rendered_name: std.StringHashMap(*sdl2.Surface),
     rendered_description: std.StringHashMap(*sdl2.Surface),
     rendered_prompt: std.StringHashMap(*sdl2.Surface),
+    rendered_info_labels: std.StringHashMap(*sdl2.Surface),
+    rendered_info_numbers: std.AutoHashMap(u32, *sdl2.Surface),
 
     hand_anim_state: std.ArrayList(HandAnimState),
     const HandAnimState = struct {
@@ -44,17 +49,22 @@ pub const Renderer = struct {
 
     pub fn init() !Renderer {
         const allocator = std.heap.c_allocator;
-        const path = "C:/Windows/Fonts/georgia.ttf";
-        const name_font = sdl2_ttf.openFont(path, 20, 0) orelse return error.OpenFont;
-        const description_font = sdl2_ttf.openFont(path, 14, 0) orelse return error.OpenFont;
-        const prompt_font = sdl2_ttf.openFont(path, 20, 0) orelse return error.OpenFont;
+        const text_font_path = "C:/Windows/Fonts/georgia.ttf";
+        const name_font = sdl2_ttf.openFont(text_font_path, 20, 0) orelse return error.OpenFont;
+        const description_font = sdl2_ttf.openFont(text_font_path, 14, 0) orelse return error.OpenFont;
+        const prompt_font = sdl2_ttf.openFont(text_font_path, 20, 0) orelse return error.OpenFont;
+        const mono_font_path = "C:/Windows/Fonts/DejaVuSansMono.ttf";
+        const info_font = sdl2_ttf.openFont(mono_font_path, 14, 0) orelse return error.OpenFont;
         return Renderer{
             .name_font = name_font,
             .description_font = description_font,
             .prompt_font = prompt_font,
+            .info_font = info_font,
             .rendered_name = std.StringHashMap(*sdl2.Surface).init(allocator),
             .rendered_description = std.StringHashMap(*sdl2.Surface).init(allocator),
             .rendered_prompt = std.StringHashMap(*sdl2.Surface).init(allocator),
+            .rendered_info_labels = std.StringHashMap(*sdl2.Surface).init(allocator),
+            .rendered_info_numbers = std.AutoHashMap(u32, *sdl2.Surface).init(allocator),
 
             .hand_anim_state = std.ArrayList(HandAnimState).init(allocator),
         };
@@ -64,9 +74,12 @@ pub const Renderer = struct {
         sdl2_ttf.closeFont(renderer.name_font);
         sdl2_ttf.closeFont(renderer.description_font);
         sdl2_ttf.closeFont(renderer.prompt_font);
+        sdl2_ttf.closeFont(renderer.info_font);
         renderer.rendered_name.deinit();
         renderer.rendered_description.deinit();
         renderer.rendered_prompt.deinit();
+        renderer.rendered_info_labels.deinit();
+        renderer.rendered_info_numbers.deinit();
 
         renderer.hand_anim_state.deinit();
     }
@@ -81,6 +94,8 @@ pub const Renderer = struct {
             repaint = false;
 
             try surface.fill(sdl2.mapRGB(surface.format, 0xff, 0xff, 0xff));
+
+            try renderer.renderInfo(state, surface);
 
             try renderer.renderPlay(state, surface);
 
@@ -116,6 +131,32 @@ pub const Renderer = struct {
                 state.card_frame = null;
             }
         }
+    }
+
+    pub fn renderInfo(renderer: *Renderer, state: *State, surface: *sdl2.Surface) !void {
+        const player = state.activePlayer();
+
+        var point = sdl2.Point{ .x = info_margin, .y = info_margin };
+
+        const actions_title = try renderText(renderer.info_font, &renderer.rendered_info_labels,
+                                             "Actions: ", @intCast(u32, surface.w));
+        _ = try sdl2.blitSurface(actions_title, null, surface, point);
+        point.x += actions_title.w;
+
+        const actions_num = try renderNumber(renderer.info_font, &renderer.rendered_info_numbers,
+                                             player.actions, @intCast(u32, surface.w));
+        _ = try sdl2.blitSurface(actions_num, null, surface, point);
+        point.x += actions_num.w + info_spacer;
+
+        const coins_title = try renderText(renderer.info_font, &renderer.rendered_info_labels,
+                                           "Coins: ", @intCast(u32, surface.w));
+        _ = try sdl2.blitSurface(coins_title, null, surface, point);
+        point.x += coins_title.w;
+
+        const coins_num = try renderNumber(renderer.info_font, &renderer.rendered_info_numbers,
+                                           player.coins, @intCast(u32, surface.w));
+        _ = try sdl2.blitSurface(coins_num, null, surface, point);
+        point.x += coins_num.w + info_spacer;
     }
 
     pub fn renderPrompt(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
@@ -426,6 +467,25 @@ fn renderText(font: *sdl2_ttf.Font, map: *std.StringHashMap(*sdl2.Surface),
     if (sdl2_ttf.renderTextBlendedWrapped(font, text, black, wrap))
         |surface| {
         try map.put(text, surface);
+        return surface;
+    } else {
+        return error.RenderText;
+    }
+}
+
+fn renderNumber(font: *sdl2_ttf.Font, map: *std.AutoHashMap(u32, *sdl2.Surface),
+                number: u32, wrap: u32) !*sdl2.Surface {
+    if (map.get(number)) |surface| {
+        return surface;
+    }
+
+    const text = try std.fmt.allocPrintZ(std.heap.c_allocator, "{}", .{number});
+    defer std.heap.c_allocator.free(text);
+
+    const black = sdl2_ttf.Color{ .r = 0, .g = 0, .b = 0, .a = 0xff };
+    if (sdl2_ttf.renderTextBlendedWrapped(font, text, black, wrap))
+        |surface| {
+        try map.put(number, surface);
         return surface;
     } else {
         return error.RenderText;
