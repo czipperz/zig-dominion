@@ -19,7 +19,7 @@ const name_bottom_margin = 10;
 const prompt_margin = 10;
 const submit_padding = 4;
 const info_margin = 10;
-const info_spacer = 15;
+const info_spacer = 20;
 const scroll_width = 20;
 
 fn lerp(ticks_now: u32, ticks_end: u32, fstart: f32, fend: f32) f32 {
