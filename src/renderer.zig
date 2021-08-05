@@ -20,6 +20,7 @@ const prompt_margin = 10;
 const submit_padding = 4;
 const info_margin = 10;
 const info_spacer = 15;
+const hand_scroll_width = 20;
 
 fn lerp(ticks_now: u32, ticks_end: u32, fstart: f32, fend: f32) f32 {
     var result = fend;
@@ -40,6 +41,10 @@ pub const Renderer = struct {
     rendered_info_numbers: std.AutoHashMap(u32, *sdl2.Surface),
 
     hand_anim_state: std.ArrayList(HandAnimState),
+    hand_scroll: f32,
+    hand_inside_left_since: ?u32,
+    hand_inside_right_since: ?u32,
+
     const HandAnimState = struct {
         ystate: enum { selected, deselected, none } = .none,
         ystart: u32 = 0,
@@ -67,6 +72,9 @@ pub const Renderer = struct {
             .rendered_info_numbers = std.AutoHashMap(u32, *sdl2.Surface).init(allocator),
 
             .hand_anim_state = std.ArrayList(HandAnimState).init(allocator),
+            .hand_scroll = 0,
+            .hand_inside_left_since = null,
+            .hand_inside_right_since = null,
         };
     }
 
@@ -262,6 +270,23 @@ pub const Renderer = struct {
                                 .w = surface.w, .h = hand_height },
                              sdl2.mapRGB(surface.format, 0xcc, 0xcc, 0xcc));
 
+        const left_rect = sdl2.Rect{ .x = 0, .y = surface.h - hand_height,
+                                     .w = hand_scroll_width, .h = hand_height };
+        renderer.hand_scroll -=
+            @intToFloat(f32, ticksInsideRegion(mouse_point, left_rect, ticks,
+                                               &renderer.hand_inside_left_since))
+                    / 20;
+
+        var right_rect = left_rect;
+        right_rect.x = surface.w - right_rect.w;
+        renderer.hand_scroll +=
+            @intToFloat(f32, ticksInsideRegion(mouse_point, right_rect, ticks,
+                                               &renderer.hand_inside_right_since))
+                    / 20;
+
+        renderer.hand_scroll = @maximum(renderer.hand_scroll, -(card_width + card_margin));
+        renderer.hand_scroll = @minimum(renderer.hand_scroll, @intToFloat(f32, (card_width + card_margin) * (player.hand.items.len + 1) + card_margin - @intCast(usize, surface.w)));
+
         // Add empty elements for drawn cards.
         if (renderer.hand_anim_state.items.len < player.hand.items.len) {
             try renderer.hand_anim_state.ensureTotalCapacity(player.hand.items.len);
@@ -280,7 +305,8 @@ pub const Renderer = struct {
             const hand_anim_state = renderer.hand_anim_state.items;
 
             var card_rect = .{
-                .x = (card_width + card_margin) * @intCast(c_int, i) + card_margin,
+                .x = (card_width + card_margin) * @intCast(c_int, i) + card_margin
+                     - @floatToInt(c_int, renderer.hand_scroll),
                 .y = surface.h - card_height,
                 .w = card_width,
                 .h = card_height,
@@ -489,5 +515,24 @@ fn renderNumber(font: *sdl2_ttf.Font, map: *std.AutoHashMap(u32, *sdl2.Surface),
         return surface;
     } else {
         return error.RenderText;
+    }
+}
+
+fn ticksInsideRegion(mouse_point: ?sdl2.Point, rect: sdl2.Rect, ticks: u32, tracker: *?u32) u32 {
+    var inside_left = false;
+    if (mouse_point) |mouse| {
+        inside_left = rect.contains(mouse);
+    }
+
+    if (inside_left) {
+        if (tracker.*) |since| {
+            return ticks - since;
+        } else {
+            tracker.* = ticks;
+            return 0;
+        }
+    } else {
+        tracker.* = null;
+        return 0;
     }
 }
