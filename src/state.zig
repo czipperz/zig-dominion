@@ -86,6 +86,16 @@ pub const State = struct {
         state.card_frame = @asyncCall(state.card_stack.?, {}, card.action.func, .{card, state});
     }
 
+    pub fn playInstant(state: *State, card: Card) !void {
+        if (@import("builtin").is_test) {
+            try card.action.func(card, state);
+        } else {
+            const card_stack = try std.heap.c_allocator.allocWithOptions(u8, card.action.frame_size, 8, null);
+            defer std.heap.c_allocator.free(card_stack);
+            try await @asyncCall(card_stack, {}, card.action.func, .{card, state});
+        }
+    }
+
     pub const Prompt = struct {
         message: [:0]const u8,
         location: CardLocation,
