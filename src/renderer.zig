@@ -174,7 +174,13 @@ pub const Renderer = struct {
             if (mouse_point) |mouse| {
                 if (card_rect.contains(mouse)) {
                     if (mouse_down.*) {
-                        result.toggle(i);
+                        // Always allow toggling off.  Only allow
+                        // toggling on for cards matching predicate.
+                        if (result.isSet(i)) {
+                            result.toggle(i);
+                        } else if (prompt.predicate(card)) {
+                            result.toggle(i);
+                        }
                         mouse_down.* = false;
                     }
                 }
