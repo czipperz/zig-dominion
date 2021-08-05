@@ -20,7 +20,7 @@ const prompt_margin = 10;
 const submit_padding = 4;
 const info_margin = 10;
 const info_spacer = 15;
-const hand_scroll_width = 20;
+const scroll_width = 20;
 
 fn lerp(ticks_now: u32, ticks_end: u32, fstart: f32, fend: f32) f32 {
     var result = fend;
@@ -41,15 +41,19 @@ pub const Renderer = struct {
     rendered_info_numbers: std.AutoHashMap(u32, *sdl2.Surface),
 
     hand_anim_state: std.ArrayList(HandAnimState),
-    hand_scroll: f32,
-    hand_inside_left_since: ?u32,
-    hand_inside_right_since: ?u32,
+    hand_scroll_state: ScrollState,
 
     const HandAnimState = struct {
         ystate: enum { selected, deselected, none } = .none,
         ystart: u32 = 0,
         xoffset: u32 = 0,
         xstart: u32 = 0,
+    };
+
+    const ScrollState = struct {
+        scroll: f32 = 0,
+        inside_left_since: ?u32 = null,
+        inside_right_since: ?u32 = null,
     };
 
     pub fn init() !Renderer {
@@ -72,9 +76,7 @@ pub const Renderer = struct {
             .rendered_info_numbers = std.AutoHashMap(u32, *sdl2.Surface).init(allocator),
 
             .hand_anim_state = std.ArrayList(HandAnimState).init(allocator),
-            .hand_scroll = 0,
-            .hand_inside_left_since = null,
-            .hand_inside_right_since = null,
+            .hand_scroll_state = .{},
         };
     }
 
@@ -270,22 +272,7 @@ pub const Renderer = struct {
                                 .w = surface.w, .h = hand_height },
                              sdl2.mapRGB(surface.format, 0xcc, 0xcc, 0xcc));
 
-        const left_rect = sdl2.Rect{ .x = 0, .y = surface.h - hand_height,
-                                     .w = hand_scroll_width, .h = hand_height };
-        renderer.hand_scroll -=
-            @intToFloat(f32, ticksInsideRegion(mouse_point, left_rect, ticks,
-                                               &renderer.hand_inside_left_since))
-                    / 20;
-
-        var right_rect = left_rect;
-        right_rect.x = surface.w - right_rect.w;
-        renderer.hand_scroll +=
-            @intToFloat(f32, ticksInsideRegion(mouse_point, right_rect, ticks,
-                                               &renderer.hand_inside_right_since))
-                    / 20;
-
-        renderer.hand_scroll = @minimum(renderer.hand_scroll, @intToFloat(f32, (card_width + card_margin) * (@intCast(c_int, player.hand.items.len) + 1) + card_margin - surface.w));
-        renderer.hand_scroll = @maximum(renderer.hand_scroll, -(card_width + card_margin));
+        calculateScrollState(&renderer.hand_scroll_state, surface, mouse_point, ticks, player.hand.items.len);
 
         // Add empty elements for drawn cards.
         if (renderer.hand_anim_state.items.len < player.hand.items.len) {
@@ -306,7 +293,7 @@ pub const Renderer = struct {
 
             var card_rect = .{
                 .x = (card_width + card_margin) * @intCast(c_int, i) + card_margin
-                     - @floatToInt(c_int, renderer.hand_scroll),
+                     - @floatToInt(c_int, renderer.hand_scroll_state.scroll),
                 .y = surface.h - card_height,
                 .w = card_width,
                 .h = card_height,
@@ -535,4 +522,26 @@ fn ticksInsideRegion(mouse_point: ?sdl2.Point, rect: sdl2.Rect, ticks: u32, trac
         tracker.* = null;
         return 0;
     }
+}
+
+fn calculateScrollState(scroll_state: *Renderer.ScrollState, surface: *sdl2.Surface, mouse_point: ?sdl2.Point, ticks: u32, num_cards: usize) void {
+    // Scroll left.
+    const left_rect = sdl2.Rect{ .x = 0, .y = surface.h - hand_height,
+                                 .w = scroll_width, .h = hand_height };
+    scroll_state.scroll -=
+        @intToFloat(f32, ticksInsideRegion(mouse_point, left_rect, ticks,
+                                           &scroll_state.inside_left_since))
+                / 20;
+
+    // Scroll right.
+    var right_rect = left_rect;
+    right_rect.x = surface.w - right_rect.w;
+    scroll_state.scroll +=
+        @intToFloat(f32, ticksInsideRegion(mouse_point, right_rect, ticks,
+                                           &scroll_state.inside_right_since))
+                / 20;
+
+    // Bound scroll.
+    scroll_state.scroll = @minimum(scroll_state.scroll, @intToFloat(f32, (card_width + card_margin) * (@intCast(c_int, num_cards) + 1) + card_margin - surface.w));
+    scroll_state.scroll = @maximum(scroll_state.scroll, -(card_width + card_margin));
 }
