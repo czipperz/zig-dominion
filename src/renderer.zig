@@ -43,6 +43,8 @@ pub const Renderer = struct {
     hand_anim_state: std.ArrayList(HandAnimState),
     hand_scroll_state: ScrollState,
 
+    prompt_scroll_state: ScrollState,
+
     const HandAnimState = struct {
         ystate: enum { selected, deselected, none } = .none,
         ystart: u32 = 0,
@@ -77,6 +79,7 @@ pub const Renderer = struct {
 
             .hand_anim_state = std.ArrayList(HandAnimState).init(allocator),
             .hand_scroll_state = .{},
+            .prompt_scroll_state = .{},
         };
     }
 
@@ -116,12 +119,21 @@ pub const Renderer = struct {
                     // Play the card.
                     try state.playCard(card);
 
+                    // Reset the scroll state.
+                    if (state.prompt) |prompt| {
+                        if (prompt.location == .hand) {
+                            renderer.prompt_scroll_state = renderer.hand_scroll_state;
+                        } else {
+                            renderer.prompt_scroll_state = .{};
+                        }
+                    }
+
                     // Check for a prompt.
                     repaint = true;
                     check_prompt = true;
                 }
             } else {
-                const submitted = try renderer.renderPrompt(state, surface, mouse_point, &mouse_down);
+                const submitted = try renderer.renderPrompt(state, surface, mouse_point, &mouse_down, ticks);
                 if (submitted) {
                     // Submit the prompt.
                     resume state.prompt_frame.?;
@@ -170,11 +182,13 @@ pub const Renderer = struct {
     }
 
     pub fn renderPrompt(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
-                        mouse_point: ?sdl2.Point, mouse_down: *bool) !bool {
+                        mouse_point: ?sdl2.Point, mouse_down: *bool, ticks: u32) !bool {
         const player = state.activePlayer();
         const prompt = state.prompt.?;
         const result = &state.prompt_result.?;
         const result_count = result.count();
+
+        calculateScrollState(&renderer.prompt_scroll_state, surface, mouse_point, ticks, player.getLocation(prompt.location).len);
 
         const submit = try renderText(renderer.prompt_font, &renderer.rendered_prompt,
                                       "Submit", @intCast(u32, surface.w));
@@ -221,7 +235,8 @@ pub const Renderer = struct {
         // Render cards to choose from.
         for (player.getLocation(prompt.location)) |card, i| {
             const card_rect = sdl2.Rect{
-                .x = (card_width + card_margin) * @intCast(c_int, i) + card_margin,
+                .x = (card_width + card_margin) * @intCast(c_int, i) + card_margin
+                     - @floatToInt(c_int, renderer.prompt_scroll_state.scroll),
                 .y = surface.h - card_height,
                 .w = card_width,
                 .h = card_height,
