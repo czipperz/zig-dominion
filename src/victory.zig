@@ -2,8 +2,7 @@ usingnamespace @import("card.zig");
 usingnamespace @import("state.zig");
 usingnamespace @import("error.zig");
 
-pub fn doNothing(self: Card, state: *State) !void {
-    _ = self;
+pub fn doNothing(state: *State) !void {
     _ = state;
 }
 

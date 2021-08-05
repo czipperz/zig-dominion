@@ -85,16 +85,16 @@ pub const State = struct {
         try player.addToPlay(card);
 
         state.card_stack = try std.heap.c_allocator.allocWithOptions(u8, card.action.frame_size, 8, null);
-        state.card_frame = @asyncCall(state.card_stack.?, {}, card.action.func, .{card, state});
+        state.card_frame = @asyncCall(state.card_stack.?, {}, card.action.func, .{state});
     }
 
     pub fn playInstant(state: *State, card: Card) !void {
         if (@import("builtin").is_test) {
-            try card.action.func(card, state);
+            try card.action.func(state);
         } else {
             const card_stack = try std.heap.c_allocator.allocWithOptions(u8, card.action.frame_size, 8, null);
             defer std.heap.c_allocator.free(card_stack);
-            try await @asyncCall(card_stack, {}, card.action.func, .{card, state});
+            try await @asyncCall(card_stack, {}, card.action.func, .{state});
         }
     }
 

@@ -6,7 +6,7 @@ fn isAction(card: Card) bool {
     return card.isAction();
 }
 
-fn playThroneRoom(self: Card, state: *State) !void {
+fn playThroneRoom(state: *State) !void {
     const player = state.activePlayer();
 
     var cards = try state.selectCards(.{
@@ -16,6 +16,7 @@ fn playThroneRoom(self: Card, state: *State) !void {
 
     if (cards.findFirstSet()) |index| {
         const card = player.hand.orderedRemove(index);
+        try player.addToPlay(card);
         try state.playInstant(card);
         try state.playInstant(card);
     }

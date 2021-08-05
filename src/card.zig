@@ -22,18 +22,18 @@ pub const CardClass = struct {
 pub const CardAction =
     if (@import("builtin").is_test)
         struct {
-            func: fn(card: Card, state: *State) Error!void,
+            func: fn(state: *State) Error!void,
         }
     else
         struct {
-            func: fn(card: Card, state: *State) callconv(.Async) Error!void,
+            func: fn(state: *State) callconv(.Async) Error!void,
             frame_size: usize,
         };
 
 pub const action =
     if (@import("builtin").is_test)
         struct {
-            pub fn action(comptime func: fn(card: Card, state: *State) Error!void) CardAction {
+            pub fn action(comptime func: fn(state: *State) Error!void) CardAction {
                 return .{
                     .func = func,
                 };
@@ -41,7 +41,7 @@ pub const action =
         }.action
     else
         struct {
-            pub fn action(comptime func: fn(card: Card, state: *State) callconv(.Async) Error!void) CardAction {
+            pub fn action(comptime func: fn(state: *State) callconv(.Async) Error!void) CardAction {
                 return .{
                     .func = func,
                     .frame_size = @sizeOf(@Frame(func)),

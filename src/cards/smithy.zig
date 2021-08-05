@@ -2,7 +2,7 @@ usingnamespace @import("../card.zig");
 usingnamespace @import("../victory.zig");
 usingnamespace @import("../state.zig");
 
-fn playSmithy(self: Card, state: *State) !void {
+fn playSmithy(state: *State) !void {
     const player = state.activePlayer();
 
     try player.draw(state.random(), 3);

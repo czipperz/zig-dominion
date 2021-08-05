@@ -2,7 +2,7 @@ usingnamespace @import("../card.zig");
 usingnamespace @import("../victory.zig");
 usingnamespace @import("../state.zig");
 
-fn playHarbinger(self: Card, state: *State) !void {
+fn playHarbinger(state: *State) !void {
     const player = state.activePlayer();
 
     try player.draw(state.random(), 1);

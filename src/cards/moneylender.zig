@@ -7,7 +7,7 @@ fn isCopper(card: Card) bool {
     return card == &copper;
 }
 
-fn playMoneylender(self: Card, state: *State) !void {
+fn playMoneylender(state: *State) !void {
     const player = state.activePlayer();
 
     var cards = try state.selectCards(

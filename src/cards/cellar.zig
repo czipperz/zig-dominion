@@ -2,7 +2,7 @@ usingnamespace @import("../card.zig");
 usingnamespace @import("../victory.zig");
 usingnamespace @import("../state.zig");
 
-fn playCellar(self: Card, state: *State) !void {
+fn playCellar(state: *State) !void {
     const player = state.activePlayer();
 
     player.actions += 1;

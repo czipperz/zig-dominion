@@ -2,7 +2,7 @@ usingnamespace @import("../card.zig");
 usingnamespace @import("../victory.zig");
 usingnamespace @import("../state.zig");
 
-fn playChapel(self: Card, state: *State) !void {
+fn playChapel(state: *State) !void {
     const player = state.activePlayer();
 
     var cards = try state.selectCards(.{ .message = "Trash up to 4 cards from your hand.",
