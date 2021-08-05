@@ -184,6 +184,11 @@ pub const Renderer = struct {
                         if (result.isSet(i)) {
                             result.toggle(i);
                         } else if (prompt.predicate(card)) {
+                            // If we can only select one card then do "bullet
+                            // point" mode by unsetting the other set indices.
+                            if (prompt.max == 1)
+                                _ = result.toggleFirstSet();
+
                             result.toggle(i);
                         }
                         mouse_down.* = false;
