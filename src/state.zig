@@ -79,11 +79,8 @@ pub const State = struct {
     }
 
     pub fn playCard(state: *State, card: Card) !void {
-        switch (card.type) {
-            .treasure, .curse, .victory => {},
-            .action_general, .action_attack, .action_reaction =>
-                state.activePlayer().actions -= 1,
-        }
+        if (card.isAction())
+            state.activePlayer().actions -= 1;
 
         state.card_stack = try std.heap.c_allocator.allocWithOptions(u8, card.action.frame_size, 8, null);
         state.card_frame = @asyncCall(state.card_stack.?, {}, card.action.func, .{card, state});
@@ -196,11 +193,7 @@ pub const Player = struct {
     }
 
     pub fn canPlay(player: *const Player, card: Card) bool {
-        return switch (card.type) {
-            .treasure, .curse, .victory => true,
-            .action_general, .action_attack, .action_reaction =>
-                player.actions >= 1,
-        };
+        return if (card.isAction()) player.actions >= 1 else true;
     }
 
     /// Draw the specified number of cards.

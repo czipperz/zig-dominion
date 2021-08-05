@@ -10,6 +10,13 @@ pub const CardClass = struct {
     type: CardType,
     action: CardAction,
     victory_points: fn(state: *const State) i32 = noVictoryPoints,
+
+    pub fn isAction(card: Card) bool {
+        return switch (card.type) {
+            .treasure, .curse, .victory => false,
+            .action_general, .action_attack, .action_reaction => true,
+        };
+    }
 };
 
 pub const CardAction =
