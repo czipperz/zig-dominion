@@ -171,6 +171,12 @@ pub const Player = struct {
     }
 
     pub fn addToPlay(player: *Player, card: Card) !void {
+        switch (card.type) {
+            .treasure, .curse, .victory => {},
+            .action_general, .action_attack, .action_reaction =>
+                player.actions -= 1,
+        }
+
         for (player.play.items) |pc, i| {
             if (pc == card) {
                 var j = i + 1; while (j < player.play.items.len) : (j += 1) {
@@ -182,6 +188,14 @@ pub const Player = struct {
             }
         }
         try player.play.append(card);
+    }
+
+    pub fn canPlay(player: *const Player, card: Card) bool {
+        return switch (card.type) {
+            .treasure, .curse, .victory => true,
+            .action_general, .action_attack, .action_reaction =>
+                player.actions >= 1,
+        };
     }
 
     /// Draw the specified number of cards.
