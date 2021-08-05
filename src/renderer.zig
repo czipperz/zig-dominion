@@ -160,25 +160,21 @@ pub const Renderer = struct {
 
         var point = sdl2.Point{ .x = info_margin, .y = info_margin };
 
-        const actions_title = try renderText(renderer.info_font, &renderer.rendered_info_labels,
-                                             "Actions: ", @intCast(u32, surface.w));
-        _ = try sdl2.blitSurface(actions_title, null, surface, point);
-        point.x += actions_title.w;
+        try renderer.renderInfoStat(surface, &point, "Actions: ", player.actions);
+        try renderer.renderInfoStat(surface, &point, "Coins: ", player.coins);
+    }
 
-        const actions_num = try renderNumber(renderer.info_font, &renderer.rendered_info_numbers,
-                                             player.actions, @intCast(u32, surface.w));
-        _ = try sdl2.blitSurface(actions_num, null, surface, point);
-        point.x += actions_num.w + info_spacer;
+    fn renderInfoStat(renderer: *Renderer, surface: *sdl2.Surface, point: *sdl2.Point,
+                      title: [:0]const u8, number: u32) !void {
+        const title_surface = try renderText(renderer.info_font, &renderer.rendered_info_labels,
+                                             title, @intCast(u32, surface.w));
+        _ = try sdl2.blitSurface(title_surface, null, surface, point.*);
+        point.x += title_surface.w;
 
-        const coins_title = try renderText(renderer.info_font, &renderer.rendered_info_labels,
-                                           "Coins: ", @intCast(u32, surface.w));
-        _ = try sdl2.blitSurface(coins_title, null, surface, point);
-        point.x += coins_title.w;
-
-        const coins_num = try renderNumber(renderer.info_font, &renderer.rendered_info_numbers,
-                                           player.coins, @intCast(u32, surface.w));
-        _ = try sdl2.blitSurface(coins_num, null, surface, point);
-        point.x += coins_num.w + info_spacer;
+        const number_surface = try renderNumber(renderer.info_font, &renderer.rendered_info_numbers,
+                                                number, @intCast(u32, surface.w));
+        _ = try sdl2.blitSurface(number_surface, null, surface, point.*);
+        point.x += number_surface.w + info_spacer;
     }
 
     fn renderPrompt(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
