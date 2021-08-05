@@ -17,4 +17,5 @@ usingnamespace @import("cards/chapel.zig");
 usingnamespace @import("cards/gardens.zig");
 usingnamespace @import("cards/harbinger.zig");
 usingnamespace @import("cards/moneylender.zig");
+usingnamespace @import("cards/smithy.zig");
 usingnamespace @import("cards/village.zig");
