@@ -19,5 +19,4 @@ test {
 
     const player = scenario.state.activePlayer();
     try expect(player.coins == 1);
-    try expect(player.play.items.len == 1);
 }

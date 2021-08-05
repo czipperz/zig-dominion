@@ -22,5 +22,4 @@ test {
     try expect(player.victoryPoints(&scenario.state) == 4);
 
     try scenario.play(&estate);
-    try expect(player.play.items.len == 1);
 }

@@ -49,5 +49,4 @@ test {
     try expect(player.hand.items.len == 5);
     try expect(player.discard.items.len == 3);
     try expect(player.actions == 2);
-    try expect(player.play.items.len == 1);
 }

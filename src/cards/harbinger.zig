@@ -73,5 +73,4 @@ test "Harbinger don't select card" {
     try expect(player.hand.items.len == 6);
     try expect(player.discard.items.len == 3);
     try expect(player.deck.items.len == 4);
-    try expect(player.play.items.len == 1);
 }

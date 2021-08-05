@@ -40,5 +40,4 @@ test {
     const player = scenario.state.activePlayer();
     try expect(player.hand.items.len == 2);
     try expect(scenario.state.trash.items.len == 3);
-    try expect(player.play.items.len == 1);
 }
