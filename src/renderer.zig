@@ -83,31 +83,29 @@ pub const Renderer = struct {
             try surface.fill(sdl2.mapRGB(surface.format, 0xff, 0xff, 0xff));
 
             try renderer.renderPlay(state, surface);
-            const played_card = try renderer.renderHand(state, surface, mouse_point, &mouse_down, ticks);
-            const submitted = try renderer.renderPrompt(state, surface, mouse_point, &mouse_down);
 
             var check_prompt = false;
-            if (submitted) {
-                std.debug.assert(played_card == null);
+            if (state.prompt == null) {
+                const played_card = try renderer.renderHand(state, surface, mouse_point, &mouse_down, ticks);
+                if (played_card) |card| {
+                    // Play the card.
+                    state.card_stack = try std.heap.c_allocator.allocWithOptions(u8, card.action.frame_size, 8, null);
+                    state.card_frame = @asyncCall(state.card_stack.?, {}, card.action.func, .{card, state});
 
-                // Submit the prompt.
-                resume state.prompt_frame.?;
+                    // Check for a prompt.
+                    repaint = true;
+                    check_prompt = true;
+                }
+            } else {
+                const submitted = try renderer.renderPrompt(state, surface, mouse_point, &mouse_down);
+                if (submitted) {
+                    // Submit the prompt.
+                    resume state.prompt_frame.?;
 
-                // Check for another prompt.
-                repaint = true;
-                check_prompt = true;
-            }
-
-            if (played_card) |card| {
-                std.debug.assert(!submitted);
-
-                // Play the card.
-                state.card_stack = try std.heap.c_allocator.allocWithOptions(u8, card.action.frame_size, 8, null);
-                state.card_frame = @asyncCall(state.card_stack.?, {}, card.action.func, .{card, state});
-
-                // Check for a prompt.
-                repaint = true;
-                check_prompt = true;
+                    // Check for another prompt.
+                    repaint = true;
+                    check_prompt = true;
+                }
             }
 
             if (check_prompt and state.prompt == null) {
@@ -123,37 +121,77 @@ pub const Renderer = struct {
 
     pub fn renderPrompt(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
                         mouse_point: ?sdl2.Point, mouse_down: *bool) !bool {
-        if (state.prompt) |prompt| {
-            const submit = try renderText(renderer.prompt_font, &renderer.rendered_prompt,
-                                          "Submit", @intCast(u32, surface.w));
+        const player = state.activePlayer();
+        const prompt = state.prompt.?;
 
-            const submit_rect_w = submit.w + submit_padding * 2;
-            const message = try renderText(renderer.prompt_font, &renderer.rendered_prompt,
-                                           prompt.message, @intCast(u32, surface.w - (submit_rect_w + prompt_margin) * 2));
-            const above_hand = surface.h - hand_height - message.h - prompt_margin;
-            _ = try sdl2.blitSurface(message, null, surface,
-                                     sdl2.Point{ .x = @divFloor(surface.w -% message.w, 2),
-                                                 .y = above_hand });
+        const submit = try renderText(renderer.prompt_font, &renderer.rendered_prompt,
+                                      "Submit", @intCast(u32, surface.w));
+
+        // Render message.
+        const submit_rect_w = submit.w + submit_padding * 2;
+        const message = try renderText(renderer.prompt_font, &renderer.rendered_prompt,
+                                       prompt.message, @intCast(u32, surface.w - (submit_rect_w + prompt_margin) * 2));
+        const above_hand = surface.h - hand_height - message.h - prompt_margin;
+        _ = try sdl2.blitSurface(message, null, surface,
+                                 sdl2.Point{ .x = @divFloor(surface.w -% message.w, 2),
+                                             .y = above_hand });
 
 
-            const submit_point = .{ .x = surface.w - submit.w - prompt_margin, .y = above_hand };
-            const submit_rect = sdl2.Rect{ .x = submit_point.x - submit_padding, .y = submit_point.y - submit_padding,
-                                           .w = submit_rect_w, .h = submit.h + submit_padding * 2, };
+        // Render submit button.
+        const submit_point = .{ .x = surface.w - submit.w - prompt_margin, .y = above_hand };
+        const submit_rect = sdl2.Rect{ .x = submit_point.x - submit_padding, .y = submit_point.y - submit_padding,
+                                       .w = submit_rect_w, .h = submit.h + submit_padding * 2, };
 
-            var submit_rect_color = sdl2.mapRGB(surface.format, 0x0d, 0xb8, 0xce);
+        var submit_rect_color = sdl2.mapRGB(surface.format, 0x0d, 0xb8, 0xce);
+        if (mouse_point) |mouse| {
+            if (submit_rect.contains(mouse)) {
+                if (mouse_down.*) {
+                    mouse_down.* = false;
+                    return true;
+                }
+                submit_rect_color = sdl2.mapRGB(surface.format, 0x4d, 0xe0, 0xf4);
+            }
+        }
+
+        try surface.fillRect(submit_rect, submit_rect_color);
+        _ = try sdl2.blitSurface(submit, null, surface, submit_point);
+
+        // Render card selection background.
+        try surface.fillRect(.{ .x = 0, .y = surface.h - hand_height,
+                                .w = surface.w, .h = hand_height },
+                             sdl2.mapRGB(surface.format, 0xbb, 0x5a, 0xd4));
+
+        // Render cards to choose from.
+        for (player.getLocation(prompt.location)) |card, i| {
+            const card_rect = sdl2.Rect{
+                .x = (card_width + card_margin) * @intCast(c_int, i) + card_margin,
+                .y = surface.h - card_height,
+                .w = card_width,
+                .h = card_height,
+            };
+
+            const result = &state.prompt_result.?;
             if (mouse_point) |mouse| {
-                if (submit_rect.contains(mouse)) {
+                if (card_rect.contains(mouse)) {
                     if (mouse_down.*) {
+                        result.toggle(i);
                         mouse_down.* = false;
-                        return true;
                     }
-                    submit_rect_color = sdl2.mapRGB(surface.format, 0x4d, 0xe0, 0xf4);
                 }
             }
 
-            try surface.fillRect(submit_rect, submit_rect_color);
+            if (result.isSet(i)) {
+                const background_rect = .{
+                    .x = card_rect.x - card_margin / 2,
+                    .y = surface.h - hand_height,
+                    .w = card_width + card_margin,
+                    .h = hand_height,
+                };
+                try surface.fillRect(background_rect, sdl2.mapRGB(surface.format, 0x95, 0x14, 0xb6));
+            }
 
-            _ = try sdl2.blitSurface(submit, null, surface, submit_point);
+            const shadow_height = 1;
+            try renderer.renderCard(surface, card, card_rect, shadow_height);
         }
 
         return false;
