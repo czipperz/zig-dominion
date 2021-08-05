@@ -155,7 +155,7 @@ pub const Renderer = struct {
         }
     }
 
-    pub fn renderInfo(renderer: *Renderer, state: *State, surface: *sdl2.Surface) !void {
+    fn renderInfo(renderer: *Renderer, state: *State, surface: *sdl2.Surface) !void {
         const player = state.activePlayer();
 
         var point = sdl2.Point{ .x = info_margin, .y = info_margin };
@@ -181,7 +181,7 @@ pub const Renderer = struct {
         point.x += coins_num.w + info_spacer;
     }
 
-    pub fn renderPrompt(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
+    fn renderPrompt(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
                         mouse_point: ?sdl2.Point, mouse_down: *bool, ticks: u32) !bool {
         const player = state.activePlayer();
         const prompt = state.prompt.?;
@@ -279,7 +279,7 @@ pub const Renderer = struct {
         return false;
     }
 
-    pub fn renderHand(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
+    fn renderHand(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
                       mouse_point: ?sdl2.Point, mouse_down: *bool, ticks: u32) !?Card {
         const player = state.activePlayer();
 
@@ -406,7 +406,7 @@ pub const Renderer = struct {
         return null;
     }
 
-    pub fn renderCard(renderer: *Renderer, surface: *sdl2.Surface,
+    fn renderCard(renderer: *Renderer, surface: *sdl2.Surface,
                       card: Card, card_rect: sdl2.Rect, shadow_height: c_int) !void {
         const shadow_rect = .{
             .x = card_rect.x + shadow_height,
@@ -451,7 +451,7 @@ pub const Renderer = struct {
         _ = try sdl2.blitSurface(description, null, surface, point);
     }
 
-    pub fn renderPlay(renderer: *Renderer, state: *State, surface: *sdl2.Surface) !void {
+    fn renderPlay(renderer: *Renderer, state: *State, surface: *sdl2.Surface) !void {
         const player = state.activePlayer();
 
         var previous_card: ?Card = null;
