@@ -276,11 +276,11 @@ pub const Renderer = struct {
                     const card = player.hand.orderedRemove(i);
                     _ = renderer.hand_anim_state.orderedRemove(i);
 
-                    var j: usize = i; while (j < hand_anim_state.len) : (j += 1) {
-                        if (hand_anim_state[j].xoffset == 0) {
-                            hand_anim_state[j].xstart = ticks;
+                    for (hand_anim_state[i..]) |*anim_state| {
+                        if (anim_state.xoffset == 0) {
+                            anim_state.xstart = ticks;
                         }
-                        hand_anim_state[j].xoffset += 1;
+                        anim_state.xoffset += 1;
                     }
 
                     mouse_down.* = false;
