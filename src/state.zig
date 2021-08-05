@@ -152,6 +152,7 @@ pub const State = struct {
 pub const Player = struct {
     coins: u32,
     actions: u32,
+    buys: u32,
 
     hand: std.ArrayList(Card),
     deck: std.ArrayList(Card),
@@ -162,6 +163,7 @@ pub const Player = struct {
         return .{
             .coins = 0,
             .actions = 1,
+            .buys = 1,
             .hand = std.ArrayList(Card).init(allocator),
             .deck = std.ArrayList(Card).init(allocator),
             .discard = std.ArrayList(Card).init(allocator),

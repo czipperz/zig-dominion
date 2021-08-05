@@ -162,6 +162,7 @@ pub const Renderer = struct {
 
         try renderer.renderInfoStat(surface, &point, "Actions: ", player.actions);
         try renderer.renderInfoStat(surface, &point, "Coins: ", player.coins);
+        try renderer.renderInfoStat(surface, &point, "Buys: ", player.buys);
     }
 
     fn renderInfoStat(renderer: *Renderer, surface: *sdl2.Surface, point: *sdl2.Point,
