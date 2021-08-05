@@ -123,6 +123,8 @@ pub const Renderer = struct {
                         mouse_point: ?sdl2.Point, mouse_down: *bool) !bool {
         const player = state.activePlayer();
         const prompt = state.prompt.?;
+        const result = &state.prompt_result.?;
+        const result_count = result.count();
 
         const submit = try renderText(renderer.prompt_font, &renderer.rendered_prompt,
                                       "Submit", @intCast(u32, surface.w));
@@ -142,9 +144,14 @@ pub const Renderer = struct {
         const submit_rect = sdl2.Rect{ .x = submit_point.x - submit_padding, .y = submit_point.y - submit_padding,
                                        .w = submit_rect_w, .h = submit.h + submit_padding * 2, };
 
+        const can_submit = result_count >= prompt.min and result_count <= prompt.max;
+
         var submit_rect_color = sdl2.mapRGB(surface.format, 0x0d, 0xb8, 0xce);
+        if (!can_submit)
+            submit_rect_color = sdl2.mapRGB(surface.format, 0xba, 0xcc, 0xcf);
+
         if (mouse_point) |mouse| {
-            if (submit_rect.contains(mouse)) {
+            if (submit_rect.contains(mouse) and can_submit) {
                 if (mouse_down.*) {
                     mouse_down.* = false;
                     return true;
@@ -170,7 +177,6 @@ pub const Renderer = struct {
                 .h = card_height,
             };
 
-            const result = &state.prompt_result.?;
             if (mouse_point) |mouse| {
                 if (card_rect.contains(mouse)) {
                     if (mouse_down.*) {
