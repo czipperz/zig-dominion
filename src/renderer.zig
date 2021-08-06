@@ -208,7 +208,8 @@ pub const Renderer = struct {
         try renderer.renderInfoStat(surface, &point, "Buys: ", player.buys);
 
         // Draw a giant button to switch page.
-        const label_text = if (renderer.page == .play) "Buy Page" else "Play Page";
+        const label_text = if (renderer.page == .play) "Switch to Buy Page"
+                           else                        "Switch to Play Page";
         const label = try renderText(renderer.info_font, &renderer.rendered_info_labels,
                                      label_text, @intCast(u32, surface.w));
         const rect = sdl2.Rect{ .x = point.x, .y = point.y - submit_padding,
