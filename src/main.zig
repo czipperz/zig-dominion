@@ -22,15 +22,6 @@ pub fn main() anyerror!void {
     var state = try State.setup(2);
     defer state.deinit();
 
-    for (state.players) |*player| {
-        const cards = @import("cards.zig");
-        try player.hand.append(&cards.moneylender);
-        try player.hand.append(&cards.throne_room);
-        try player.discard.append(&cards.copper);
-        try player.discard.append(&cards.silver);
-        try player.discard.append(&cards.harbinger);
-    }
-
     var renderer = try Renderer.init();
     defer renderer.deinit();
 
