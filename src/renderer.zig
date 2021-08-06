@@ -31,6 +31,9 @@ fn lerp(ticks_now: u32, ticks_end: u32, fstart: f32, fend: f32) f32 {
 }
 
 pub const Renderer = struct {
+    page: Page,
+
+    // Play page state.
     name_font: *sdl2_ttf.Font,
     description_font: *sdl2_ttf.Font,
     prompt_font: *sdl2_ttf.Font,
@@ -45,6 +48,11 @@ pub const Renderer = struct {
     hand_scroll_state: ScrollState,
 
     prompt_scroll_state: ScrollState,
+
+    const Page = enum {
+        play,
+        buy,
+    };
 
     const HandAnimState = struct {
         ystate: enum { selected, deselected, none } = .none,
@@ -68,6 +76,8 @@ pub const Renderer = struct {
         const mono_font_path = "C:/Windows/Fonts/DejaVuSansMono.ttf";
         const info_font = sdl2_ttf.openFont(mono_font_path, 14, 0) orelse return error.OpenFont;
         return Renderer{
+            .page = .play,
+
             .name_font = name_font,
             .description_font = description_font,
             .prompt_font = prompt_font,
@@ -128,7 +138,10 @@ pub const Renderer = struct {
 
             try surface.fill(sdl2.mapRGB(surface.format, 0xff, 0xff, 0xff));
 
-            try renderer.renderInfo(state, surface);
+            if (try renderer.renderInfo(state, surface, mouse_point, &mouse_down)) {
+                repaint = true;
+                continue;
+            }
 
             try renderer.renderPlay(state, surface);
 
@@ -175,7 +188,8 @@ pub const Renderer = struct {
         }
     }
 
-    fn renderInfo(renderer: *Renderer, state: *State, surface: *sdl2.Surface) !void {
+    fn renderInfo(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
+                  mouse_point: ?sdl2.Point, mouse_down: *bool) !bool {
         const zone = tracy.startZone(@src());
         defer zone.end();
 
@@ -186,6 +200,33 @@ pub const Renderer = struct {
         try renderer.renderInfoStat(surface, &point, "Actions: ", player.actions);
         try renderer.renderInfoStat(surface, &point, "Coins: ", player.coins);
         try renderer.renderInfoStat(surface, &point, "Buys: ", player.buys);
+
+        // Draw a giant button to switch page.
+        const label_text = if (renderer.page == .play) "Buy Page" else "Play Page";
+        const label = try renderText(renderer.info_font, &renderer.rendered_info_labels,
+                                     label_text, @intCast(u32, surface.w));
+        const rect = sdl2.Rect{ .x = point.x, .y = point.y - submit_padding,
+                                .w = @minimum(400, surface.w - point.x),
+                                .h = label.h + submit_padding * 2 };
+
+        var rect_color = sdl2.mapRGB(surface.format, 0x0d, 0xb8, 0xce);
+        if (mouse_point) |mouse| {
+            if (rect.contains(mouse)) {
+                if (mouse_down.*) {
+                    mouse_down.* = false;
+                    renderer.page = if (renderer.page == .play) .buy else .play;
+                    return true;
+                }
+                rect_color = sdl2.mapRGB(surface.format, 0x4d, 0xe0, 0xf4);
+            }
+        }
+
+        try surface.fillRect(rect, rect_color);
+        _ = try sdl2.blitSurface(label, null, surface,
+                                 sdl2.Point{ .x = rect.x + submit_padding,
+                                             .y = rect.y + submit_padding });
+
+        return false;
     }
 
     fn renderInfoStat(renderer: *Renderer, surface: *sdl2.Surface, point: *sdl2.Point,
