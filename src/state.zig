@@ -236,6 +236,8 @@ pub const Player = struct {
         var num = num_in;
         try player.hand.ensureUnusedCapacity(num);
 
+        defer player.sortHand();
+
         // Draw from the deck.
         while (num > 0 and player.deck.items.len > 0) {
             player.hand.appendAssumeCapacity(player.deck.pop());
@@ -260,6 +262,10 @@ pub const Player = struct {
         }
     }
 
+    fn sortHand(player: *Player) void {
+        std.sort.sort(Card, player.hand.items, {}, compareCardsLT);
+    }
+
     /// Get the total number of victory points for the player.
     pub fn victoryPoints(player: *const Player, state: *const State) i32 {
         var num: i32 = 0;
@@ -269,6 +275,22 @@ pub const Player = struct {
         return num;
     }
 };
+
+fn rankType(ct: CardType) u8 {
+    return switch (ct) {
+        .action_general, .action_attack, .action_reaction => 1,
+        .treasure => 2,
+        .victory => 3,
+        .curse => 4,
+    };
+}
+
+fn compareCardsLT(_: void, left: Card, right: Card) bool {
+    if (rankType(left.type) != rankType(right.type))
+        return rankType(left.type) < rankType(right.type);
+
+    return std.mem.lessThan(u8, left.name, right.name);
+}
 
 pub const MockInput = union(enum) {
     selected_cards: std.DynamicBitSet,
