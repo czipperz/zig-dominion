@@ -38,6 +38,17 @@ pub fn build(b: *std.build.Builder) void {
     exe.setTarget(target);
     exe.setBuildMode(mode);
     useSdl(exe);
+
+    const tracy_enable = b.option(bool, "tracy", "Enable Tracy integration.") orelse false;
+    exe.addBuildOption(bool, "tracy_enable", tracy_enable);
+    exe.addPackagePath("tracy", "../tracy/src/main.zig");
+    if (tracy_enable) {
+        exe.addCSourceFile("../tracy/tracy/TracyClient.cpp",
+                           &.{"-DTRACY_ENABLE=1", "-DTRACY_CALLSTACK=1",
+                              "-fno-sanitize=undefined"});
+        exe.addIncludeDir("../tracy/tracy");
+    }
+
     exe.install();
 
     const run_cmd = exe.run();
@@ -54,6 +65,7 @@ pub fn build(b: *std.build.Builder) void {
 
     const main_tests = b.addTest("src/main.zig");
     useSdl(main_tests);
+    main_tests.addIncludeDir("tracy");
     main_tests.setBuildMode(mode);
 
     const test_step = b.step("test", "Run tests");

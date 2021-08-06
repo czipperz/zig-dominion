@@ -79,6 +79,10 @@ pub const State = struct {
     }
 
     pub fn playCard(state: *State, card: Card) !void {
+        const zone = tracy.startZone(@src());
+        zone.text(card.name);
+        defer zone.end();
+
         const player = state.activePlayer();
         if (card.isAction())
             player.actions -= 1;
@@ -89,6 +93,10 @@ pub const State = struct {
     }
 
     pub fn playInstant(state: *State, card: Card) !void {
+        const zone = tracy.startZone(@src());
+        zone.text(card.name);
+        defer zone.end();
+
         if (@import("builtin").is_test) {
             try card.action.func(state);
         } else {
@@ -107,6 +115,9 @@ pub const State = struct {
     };
 
     pub fn selectCards(state: *State, prompt: Prompt) !std.DynamicBitSet {
+        const zone = tracy.startZone(@src());
+        defer zone.end();
+
         if (@import("builtin").is_test) {
             switch (state.input_stack.pop()) {
                 .selected_cards => |bit_set| {
@@ -193,6 +204,9 @@ pub const Player = struct {
     }
 
     pub fn addToPlay(player: *Player, card: Card) !void {
+        const zone = tracy.startZone(@src());
+        defer zone.end();
+
         for (player.play.items) |pc, i| {
             if (pc == card) {
                 var j = i + 1; while (j < player.play.items.len) : (j += 1) {
@@ -212,6 +226,9 @@ pub const Player = struct {
 
     /// Draw the specified number of cards.
     pub fn draw(player: *Player, random: *std.rand.Random, num_in: usize) !void {
+        const zone = tracy.startZone(@src());
+        defer zone.end();
+
         var num = num_in;
         try player.hand.ensureUnusedCapacity(num);
 

@@ -1,10 +1,14 @@
 const std = @import("std");
 const sdl2 = @import("sdl2");
 const sdl2_ttf = @import("sdl2_ttf");
+const tracy = @import("tracy.zig");
 usingnamespace @import("state.zig");
 usingnamespace @import("renderer.zig");
 
 pub fn main() anyerror!void {
+    const zone = tracy.startZone(@src());
+    defer zone.end();
+
     try sdl2.init(.{ .video = true });
     defer sdl2.quit();
 

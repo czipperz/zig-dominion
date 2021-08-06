@@ -99,6 +99,9 @@ pub const Renderer = struct {
 
     pub fn render(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
                   mouse_point: ?sdl2.Point, mouse_down_in: bool) !void {
+        const zone = tracy.startZone(@src());
+        defer zone.end();
+
         var mouse_down = mouse_down_in;
         const ticks = sdl2.getTicks();
 
@@ -156,6 +159,9 @@ pub const Renderer = struct {
     }
 
     fn renderInfo(renderer: *Renderer, state: *State, surface: *sdl2.Surface) !void {
+        const zone = tracy.startZone(@src());
+        defer zone.end();
+
         const player = state.activePlayer();
 
         var point = sdl2.Point{ .x = info_margin, .y = info_margin };
@@ -167,6 +173,9 @@ pub const Renderer = struct {
 
     fn renderInfoStat(renderer: *Renderer, surface: *sdl2.Surface, point: *sdl2.Point,
                       title: [:0]const u8, number: u32) !void {
+        const zone = tracy.startZone(@src());
+        defer zone.end();
+
         const title_surface = try renderText(renderer.info_font, &renderer.rendered_info_labels,
                                              title, @intCast(u32, surface.w));
         _ = try sdl2.blitSurface(title_surface, null, surface, point.*);
@@ -180,6 +189,9 @@ pub const Renderer = struct {
 
     fn renderPrompt(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
                         mouse_point: ?sdl2.Point, mouse_down: *bool, ticks: u32) !bool {
+        const zone = tracy.startZone(@src());
+        defer zone.end();
+
         const player = state.activePlayer();
         const prompt = state.prompt.?;
         const result = &state.prompt_result.?;
@@ -278,6 +290,9 @@ pub const Renderer = struct {
 
     fn renderHand(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
                       mouse_point: ?sdl2.Point, mouse_down: *bool, ticks: u32) !?Card {
+        const zone = tracy.startZone(@src());
+        defer zone.end();
+
         const player = state.activePlayer();
 
         try surface.fillRect(.{ .x = 0, .y = surface.h - hand_height,
@@ -405,6 +420,9 @@ pub const Renderer = struct {
 
     fn renderCard(renderer: *Renderer, surface: *sdl2.Surface,
                       card: Card, card_rect: sdl2.Rect, shadow_height: c_int) !void {
+        const zone = tracy.startZone(@src());
+        defer zone.end();
+
         const shadow_rect = .{
             .x = card_rect.x + shadow_height,
             .y = card_rect.y + shadow_height,
@@ -449,6 +467,9 @@ pub const Renderer = struct {
     }
 
     fn renderPlay(renderer: *Renderer, state: *State, surface: *sdl2.Surface) !void {
+        const zone = tracy.startZone(@src());
+        defer zone.end();
+
         const player = state.activePlayer();
 
         var previous_card: ?Card = null;
@@ -485,6 +506,9 @@ fn renderCardText(font: *sdl2_ttf.Font, map: *std.StringHashMap(*sdl2.Surface),
 
 fn renderText(font: *sdl2_ttf.Font, map: *std.StringHashMap(*sdl2.Surface),
               text: [:0]const u8, wrap: u32) !*sdl2.Surface {
+    const zone = tracy.startZone(@src());
+    defer zone.end();
+
     if (map.get(text)) |surface|
         return surface;
 
@@ -500,6 +524,9 @@ fn renderText(font: *sdl2_ttf.Font, map: *std.StringHashMap(*sdl2.Surface),
 
 fn renderNumber(font: *sdl2_ttf.Font, map: *std.AutoHashMap(u32, *sdl2.Surface),
                 number: u32, wrap: u32) !*sdl2.Surface {
+    const zone = tracy.startZone(@src());
+    defer zone.end();
+
     if (map.get(number)) |surface| {
         return surface;
     }
