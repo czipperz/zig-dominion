@@ -110,6 +110,22 @@ pub const Renderer = struct {
         while (repaint) {
             repaint = false;
 
+            // End action phase if the user has no actions left.
+            const player = state.activePlayer();
+            if (state.prompt == null and state.phase == .action) {
+                var no_action_cards = true;
+                for (player.hand.items) |card| {
+                    if (card.isAction()) {
+                        no_action_cards = false;
+                        break;
+                    }
+                }
+
+                if (player.actions == 0 or no_action_cards) {
+                    state.phase = .buy;
+                }
+            }
+
             try surface.fill(sdl2.mapRGB(surface.format, 0xff, 0xff, 0xff));
 
             try renderer.renderInfo(state, surface);
