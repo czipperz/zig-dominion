@@ -9,6 +9,7 @@ pub const State = struct {
     players: []Player,
     active_player: usize,
     trash: std.ArrayList(Card),
+    phase: Phase,
 
     prompt: ?Prompt,
     prompt_result: ?std.DynamicBitSet,
@@ -48,6 +49,7 @@ pub const State = struct {
             .players = players,
             .active_player = 0,
             .trash = std.ArrayList(Card).init(allocator),
+            .phase = .action,
 
             .prompt = null,
             .prompt_result = null,
@@ -221,8 +223,9 @@ pub const Player = struct {
         try player.play.append(card);
     }
 
-    pub fn canPlay(player: *const Player, card: Card) bool {
-        return if (card.isAction()) player.actions >= 1 else true;
+    pub fn canPlay(player: *const Player, state: *const State, card: Card) bool {
+        return if (card.isAction()) state.phase == .action and player.actions >= 1
+               else                 state.phase == .buy;
     }
 
     /// Draw the specified number of cards.
@@ -282,6 +285,12 @@ pub const CardLocation = enum {
     deck,
     discard,
     play,
+};
+
+pub const Phase = enum {
+    action,
+    buy,
+    cleanup,
 };
 
 const expect = std.testing.expect;

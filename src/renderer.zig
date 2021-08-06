@@ -369,7 +369,7 @@ pub const Renderer = struct {
             }
 
             // Update state based on mouse intersection.
-            if (contains_mouse and player.canPlay(player.hand.items[i])) {
+            if (contains_mouse and player.canPlay(state, player.hand.items[i])) {
                 if (mouse_down.*) {
                     const card = player.hand.orderedRemove(i);
                     _ = renderer.hand_anim_state.orderedRemove(i);
