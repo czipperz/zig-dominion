@@ -65,7 +65,7 @@ pub fn build(b: *std.build.Builder) void {
 
     const main_tests = b.addTest("src/main.zig");
     useSdl(main_tests);
-    main_tests.addIncludeDir("tracy");
+    main_tests.addPackagePath("tracy", "../tracy/src/main.zig");
     main_tests.setBuildMode(mode);
 
     const test_step = b.step("test", "Run tests");
