@@ -197,6 +197,12 @@ pub const Renderer = struct {
 
         var point = sdl2.Point{ .x = info_margin, .y = info_margin };
 
+        const phase_text = switch (state.phase) { .action => "Action", .buy => "Buy",
+                                                  .cleanup => "Cleanup", };
+        try renderer.renderInfoText(surface, &point, "Phase: ");
+        try renderer.renderInfoText(surface, &point, phase_text);
+        point.x += info_spacer;
+
         try renderer.renderInfoStat(surface, &point, "Actions: ", player.actions);
         try renderer.renderInfoStat(surface, &point, "Coins: ", player.coins);
         try renderer.renderInfoStat(surface, &point, "Buys: ", player.buys);
@@ -234,15 +240,20 @@ pub const Renderer = struct {
         const zone = tracy.startZone(@src());
         defer zone.end();
 
-        const title_surface = try renderText(renderer.info_font, &renderer.rendered_info_labels,
-                                             title, @intCast(u32, surface.w));
-        _ = try sdl2.blitSurface(title_surface, null, surface, point.*);
-        point.x += title_surface.w;
+        try renderer.renderInfoText(surface, point, title);
 
         const number_surface = try renderNumber(renderer.info_font, &renderer.rendered_info_numbers,
                                                 number, @intCast(u32, surface.w));
         _ = try sdl2.blitSurface(number_surface, null, surface, point.*);
         point.x += number_surface.w + info_spacer;
+    }
+
+    fn renderInfoText(renderer: *Renderer, surface: *sdl2.Surface, point: *sdl2.Point,
+                      title: [:0]const u8) !void {
+        const title_surface = try renderText(renderer.info_font, &renderer.rendered_info_labels,
+                                             title, @intCast(u32, surface.w));
+        _ = try sdl2.blitSurface(title_surface, null, surface, point.*);
+        point.x += title_surface.w;
     }
 
     fn renderPrompt(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
