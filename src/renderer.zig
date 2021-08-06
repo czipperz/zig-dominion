@@ -1,6 +1,7 @@
 const std = @import("std");
 const sdl2 = @import("sdl2");
 const sdl2_ttf = @import("sdl2_ttf");
+const tracy = @import("tracy.zig");
 usingnamespace @import("card.zig");
 usingnamespace @import("state.zig");
 usingnamespace @import("error.zig");

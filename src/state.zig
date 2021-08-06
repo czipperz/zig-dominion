@@ -1,4 +1,5 @@
 const std = @import("std");
+const tracy = @import("tracy.zig");
 usingnamespace @import("card.zig");
 usingnamespace @import("cards/copper.zig");
 usingnamespace @import("cards/estate.zig");
