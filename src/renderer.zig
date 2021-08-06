@@ -205,7 +205,7 @@ pub const Renderer = struct {
     }
 
     fn renderPrompt(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
-                        mouse_point: ?sdl2.Point, mouse_down: *bool, ticks: u32) !bool {
+                    mouse_point: ?sdl2.Point, mouse_down: *bool, ticks: u32) !bool {
         const zone = tracy.startZone(@src());
         defer zone.end();
 
@@ -306,7 +306,7 @@ pub const Renderer = struct {
     }
 
     fn renderHand(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
-                      mouse_point: ?sdl2.Point, mouse_down: *bool, ticks: u32) !?Card {
+                  mouse_point: ?sdl2.Point, mouse_down: *bool, ticks: u32) !?Card {
         const zone = tracy.startZone(@src());
         defer zone.end();
 
@@ -436,7 +436,7 @@ pub const Renderer = struct {
     }
 
     fn renderCard(renderer: *Renderer, surface: *sdl2.Surface,
-                      card: Card, card_rect: sdl2.Rect, shadow_height: c_int) !void {
+                  card: Card, card_rect: sdl2.Rect, shadow_height: c_int) !void {
         const zone = tracy.startZone(@src());
         defer zone.end();
 
