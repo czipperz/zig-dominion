@@ -143,6 +143,11 @@ pub const Renderer = struct {
                 continue;
             }
 
+            if (renderer.page == .buy) {
+                try renderer.renderBuyPage(state, surface, mouse_point, &mouse_down);
+                continue;
+            }
+
             try renderer.renderPlay(state, surface);
 
             var check_prompt = false;
@@ -255,6 +260,46 @@ pub const Renderer = struct {
                                              title, @intCast(u32, surface.w));
         _ = try sdl2.blitSurface(title_surface, null, surface, point.*);
         point.x += title_surface.w;
+    }
+
+    fn renderBuyPage(renderer: *Renderer, state: *State, surface: *sdl2.Surface,
+                     mouse_point: ?sdl2.Point, mouse_down: *bool) !void {
+        const top_offset = 50;
+        const rows = @maximum(1, @divFloor(surface.h - top_offset, card_height + card_margin));
+        const player = state.activePlayer();
+
+        var r: c_int = 0;
+        var c: c_int = 0;
+        for (state.buy_stacks) |*stack| {
+            const rect = sdl2.Rect{ .x = c * (card_width + card_margin) + 20,
+                                    .y = r * (card_height + card_margin) + top_offset,
+                                    .w = card_width, .h = card_height };
+
+            var shadow_height: c_int = 1;
+            if (mouse_point) |mouse| {
+                if (rect.contains(mouse) and stack.height >= 1) {
+                    if (mouse_down.* and state.prompt != null and state.phase == .buy
+                            and player.coins >= stack.card.cost) {
+                        mouse_down.* = false;
+                        player.coins -= stack.card.cost;
+                        stack.height -= 1;
+                        try player.discard.append(stack.card);
+                    }
+
+                    if (stack.height >= 1) {
+                        shadow_height = 6;
+                    }
+                }
+            }
+
+            try renderer.renderCard(surface, stack.card, rect, shadow_height);
+
+            r += 1;
+            if (r == rows) {
+                r = 0;
+                c += 1;
+            }
+        }
     }
 
     fn renderPrompt(renderer: *Renderer, state: *State, surface: *sdl2.Surface,

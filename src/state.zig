@@ -10,6 +10,7 @@ pub const State = struct {
     active_player: usize,
     trash: std.ArrayList(Card),
     phase: Phase,
+    buy_stacks: []Stack,
 
     prompt: ?Prompt,
     prompt_result: ?std.DynamicBitSet,
@@ -45,11 +46,45 @@ pub const State = struct {
             try player.draw(&prng.random, 5);
         }
 
+        const cards = @import("cards.zig");
+        const base_cards = &[_]Card { &cards.copper, &cards.silver, &cards.gold,
+                                      &cards.estate, &cards.duchy, &cards.province,
+                                      &cards.curse, };
+        const set_cards = &[_]Card { &cards.cellar, &cards.chapel, &cards.gardens, &cards.harbinger,
+                                     &cards.moneylender, &cards.smithy, &cards.throne_room,
+                                     &cards.village };
+
+        const buy_stacks = try std.heap.c_allocator.alloc(Stack, base_cards.len + set_cards.len);
+        var i: usize = 0;
+        for (base_cards) |card| {
+            const height = switch (card) {
+                &cards.copper => 60 - num_players * 7,
+                &cards.silver => 40,
+                &cards.gold => 30,
+                &cards.estate => if (num_players == 2) @as(usize, 8) else 12,
+                &cards.duchy => 12,
+                &cards.province => 12,
+                &cards.curse => 30,
+                else => unreachable,
+            };
+            buy_stacks[i] = .{ .card = card, .height = height };
+            i += 1;
+        }
+        for (set_cards) |card| {
+            const height: usize = switch (card) {
+                &cards.gardens => 12,
+                else => 10,
+            };
+            buy_stacks[i] = .{ .card = card, .height = height };
+            i += 1;
+        }
+
         return State {
             .players = players,
             .active_player = 0,
             .trash = std.ArrayList(Card).init(allocator),
             .phase = .action,
+            .buy_stacks = buy_stacks,
 
             .prompt = null,
             .prompt_result = null,
@@ -274,6 +309,11 @@ pub const Player = struct {
         for (player.discard.items) |card| num += card.victory_points(state);
         return num;
     }
+};
+
+pub const Stack = struct {
+    card: Card,
+    height: usize,
 };
 
 fn rankType(ct: CardType) u8 {
